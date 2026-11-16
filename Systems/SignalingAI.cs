@@ -7,28 +7,41 @@ namespace videojuego.Systems;
 public class SignalingAI
 {
     private float _trafficTimer = 0f;
-    private float _ghostTrainPosition = 950f; // Tren IA circulando por delante de ti
+    private float _ghostTrainPosition = 950f;
 
     public void Update(float dt, MetroTrain playerTrain, List<Signal> signals, List<Station> stations)
     {
-        // Simulamos un tren IA que circula por delante a ~55 km/h (15.2 m/s) y para brevemente
         _trafficTimer += dt;
-        float cycle = _trafficTimer % 45f;
-        if (cycle < 30f)
+        float cycle = _trafficTimer % 42f;
+
+        // El tren precedente circula durante 28s y hace parada de 14s en estaciones
+        if (cycle < 28f && _ghostTrainPosition < 20400f)
         {
-            _ghostTrainPosition += 15.5f * dt;
+            _ghostTrainPosition += 16.5f * dt;
         }
 
-        // El algoritmo evalúa cada semáforo según la distancia al tren que va delante
+        // Si el tren precedente se aleja demasiado (> 1400m), simulamos que entra otro tren en bloque
+        if (_ghostTrainPosition - playerTrain.PositionMeters > 1400f)
+        {
+            _ghostTrainPosition = playerTrain.PositionMeters + 850f;
+        }
+
         foreach (var signal in signals)
         {
+            // Mantener siempre en rojo el tope final de Fondo
+            if (signal.SignText == "TOPE FIN L1")
+            {
+                signal.Aspect = SignalAspect.Red;
+                continue;
+            }
+
             float distanceToGhost = _ghostTrainPosition - signal.PositionMeters;
 
-            if (distanceToGhost > 0 && distanceToGhost < 220f)
+            if (distanceToGhost > 0 && distanceToGhost < 230f)
             {
                 signal.Aspect = SignalAspect.Red;
             }
-            else if (distanceToGhost >= 220f && distanceToGhost < 480f)
+            else if (distanceToGhost >= 230f && distanceToGhost < 500f)
             {
                 signal.Aspect = SignalAspect.Yellow;
             }
@@ -37,7 +50,6 @@ public class SignalingAI
                 signal.Aspect = SignalAspect.Green;
             }
 
-            // Sistema ATP: si el jugador rebasa un semáforo en rojo, salta freno de emergencia
             if (signal.Aspect == SignalAspect.Red &&
                 playerTrain.PositionMeters > signal.PositionMeters &&
                 playerTrain.PositionMeters < signal.PositionMeters + 5f &&

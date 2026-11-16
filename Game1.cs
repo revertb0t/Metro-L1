@@ -31,6 +31,7 @@ public class Game1 : Game
 
     public Game1()
     {
+        Window.Title = "Metro L1 by Revert_b0t";
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -53,27 +54,9 @@ public class Game1 : Game
         _signalingAI = new SignalingAI();
         _serviceManager = new ServiceManager();
 
-        _stations = new List<Station>
-        {
-            new Station("HOSPITAL DE BELLVITGE", 50f, "TERMINAL L1", 95f, 1),
-            new Station("BELLVITGE", 680f, "", 95f, 1),
-            new Station("AV. CARRILET", 1360f, "FGC L8", 95f, 2),
-            new Station("RAMBLA JUST OLIVERAS", 2040f, "RODALIES", 95f, 1),
-            new Station("CAN SERRA", 2700f, "", 95f, 1)
-        };
-
-        _signals = new List<Signal>
-        {
-            new Signal(155f, SignalAspect.Green, "SALIDA 75", 75),
-            new Signal(450f, SignalAspect.Green, "CANTON 02", 75),
-            new Signal(660f, SignalAspect.Green, "VIA 1", 65),
-            new Signal(890f, SignalAspect.Green, "RECTA 80", 80),
-            new Signal(1160f, SignalAspect.Green, "AGUJAS 45", 45),
-            new Signal(1340f, SignalAspect.Green, "VIA 2", 45),
-            new Signal(1580f, SignalAspect.Green, "SALIDA 75", 75),
-            new Signal(1860f, SignalAspect.Green, "CANTON 06", 70),
-            new Signal(2020f, SignalAspect.Green, "VIA 1", 65)
-        };
+        var routeData = Line1Builder.BuildFullLine1();
+        _stations = routeData.Stations;
+    _signals = routeData.Signals;
     }
 
     protected override void LoadContent()

@@ -250,10 +250,10 @@ public class MenuUI
 
         // Títulos alineados dentro de la tarjeta
         int textX = badgeX + 145;
-        sb.DrawString(_font, "METRO DE BARCELONA", new Vector2(textX, cardY + 52), Color.White, 0f, Vector2.Zero, 1.5f, SpriteEffects.None, 0f);
+        sb.DrawString(_font, "METRO L1 BY REVERT_B0T", new Vector2(textX, cardY + 52), Color.White, 0f, Vector2.Zero, 1.5f, SpriteEffects.None, 0f);
         sb.DrawString(_font, "SIMULADOR DE CONDUCCION FERROVIARIA - SERIE 6000", new Vector2(textX, cardY + 102), Color.LightGray);
         DrawRect(sb, textX, cardY + 135, 500, 2, _panelBorder);
-        sb.DrawString(_font, "SERVICIO: HOSPITAL DE BELLVITGE <-> CAN SERRA", new Vector2(textX, cardY + 150), Color.Cyan);
+        sb.DrawString(_font, "LINEA COMPLETA: HOSPITAL DE BELLVITGE <-> FONDO (30 ESTACIONES)", new Vector2(textX, cardY + 150), Color.Cyan);
         sb.DrawString(_font, "SISTEMA DE PROTECCION ATP Y ENCLAVAMIENTO CCM ACTIVO", new Vector2(textX, cardY + 178), Color.Gray);
 
         // Botones del menú principal

@@ -60,9 +60,9 @@ public class MetroRenderer
         float cameraOffsetX = 680f - (train.PositionMeters * PixelsPerMeter);
         int baseGroundY = groundY + (int)shakeY;
 
-        // 1. Fondo del túnel y bóveda superior
-        DrawRect(sb, 0, 0, 1920, baseGroundY, _tunnelBg);
-        DrawRect(sb, 0, 90, 1920, 24, new Color(24, 28, 36));
+        // 1. Fondo del túnel y bóveda superior (desplazada bajo el termómetro TMB)
+        DrawRect(sb, 0, 185, 1920, baseGroundY - 185, _tunnelBg);
+        DrawRect(sb, 0, 185, 1920, 18, new Color(24, 28, 36));
 
         // Pilares, cableado de túnel y luminarias con degradado suave
         for (int m = 0; m < 3500; m += 26)
@@ -122,6 +122,9 @@ public class MetroRenderer
 
         // 7. Consola de cabina inferior (1920x1080)
         DrawCabinHUD(sb, train, service, config);
+
+        // 8. Termómetro superior oficial de la L1 (TMB) con progreso en tiempo real
+        DrawRouteThermometer(sb, train, stations);
     }
 
     private void DrawStation(SpriteBatch sb, Station st, float cameraOffsetX, int groundY)
@@ -436,5 +439,171 @@ public class MetroRenderer
     private void DrawRect(SpriteBatch sb, int x, int y, int width, int height, Color color)
     {
         sb.Draw(_pixel, new Rectangle(x, y, width, height), color);
+    }
+
+    private void DrawRouteThermometer(SpriteBatch sb, MetroTrain train, List<Station> stations)
+    {
+        if (stations == null || stations.Count < 2) return;
+
+        // Fondo blanco limpio estilo cartel interior de tren Serie 6000 de TMB
+        DrawRect(sb, 0, 0, 1920, 185, new Color(244, 245, 247));
+        DrawRect(sb, 0, 181, 1920, 4, _tmbRed);
+
+        int lineY = 122;
+        int startX = 115;
+        int endX = 1805;
+        int totalLineW = endX - startX;
+
+        // Badges rojos "L1" en ambos extremos (como en el plano oficial de TMB)
+        DrawRect(sb, 42, lineY - 22, 44, 44, _tmbRed);
+        Vector2 l1Size = _font.MeasureString("L1");
+        sb.DrawString(_font, "L1", new Vector2(42 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White);
+
+        DrawRect(sb, 1834, lineY - 22, 44, 44, _tmbRed);
+        sb.DrawString(_font, "L1", new Vector2(1834 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White);
+
+        // Barra base roja de la línea (tramo pendiente) y barra iluminada de progreso recorrido
+        float firstPos = stations[0].PositionMeters;
+        float lastPos = stations[^1].PositionMeters;
+        float progressRatio = Math.Clamp((train.PositionMeters - firstPos) / (lastPos - firstPos), 0f, 1f);
+        int trainMarkerX = startX + (int)(progressRatio * totalLineW);
+
+        // Tramo ya recorrido en rojo intenso y tramo pendiente en rojo suave/apagado
+        DrawRect(sb, startX, lineY - 4, totalLineW, 8, new Color(235, 175, 170));
+        DrawRect(sb, startX, lineY - 4, trainMarkerX - startX, 8, _tmbRed);
+
+        // Dibujar cada una de las 30 estaciones distribuidas equitativamente
+        float stepX = (float)totalLineW / (stations.Count - 1);
+
+        for (int i = 0; i < stations.Count; i++)
+        {
+            var st = stations[i];
+            int sx = startX + (int)Math.Round(i * stepX);
+            bool passed = train.PositionMeters >= st.PositionMeters - 5f;
+            bool hasConnections = !string.IsNullOrEmpty(st.Connections) &&
+                                  st.Connections != "TERMINAL L1";
+
+            // 1. Nombre de estación inclinado a -45 grados por encima de la línea (fiel al plano TMB)
+            float textScale = 0.62f;
+            Color nameColor = passed ? Color.Black : new Color(75, 80, 90);
+            // Abreviar ligeramente nombres muy largos para que no toquen el borde superior
+            string displayName = st.Name
+                .Replace("HOSPITAL DE BELLVITGE", "Hospital de Bellvitge")
+                .Replace("RAMBLA JUST OLIVERAS", "Rbla. Just Oliveras");
+
+            sb.DrawString(
+                _font,
+                displayName,
+                new Vector2(sx - 4, lineY - 14),
+                nameColor,
+                -MathHelper.PiOver4, // Rotación -45°
+                Vector2.Zero,
+                textScale,
+                SpriteEffects.None,
+                0f
+            );
+
+            // 2. Nodo de estación: círculo blanco con borde negro si tiene enlace, o muesca roja si no tiene
+            if (hasConnections)
+            {
+                DrawRect(sb, sx - 8, lineY - 8, 16, 16, Color.Black);
+                DrawRect(sb, sx - 5, lineY - 5, 10, 10, passed ? Color.Gold : Color.White);
+            }
+            else
+            {
+                DrawRect(sb, sx - 2, lineY - 9, 4, 14, passed ? _tmbRed : new Color(210, 120, 115));
+            }
+
+            // 3. Cuadraditos de correspondencia de colores oficiales debajo de la línea
+            DrawConnectionBadges(sb, st.Name, sx, lineY + 13);
+        }
+
+        // 4. Indicador en tiempo real de la posición actual del tren sobre el termómetro
+        DrawRect(sb, trainMarkerX - 9, lineY - 11, 18, 22, Color.Black);
+        DrawRect(sb, trainMarkerX - 7, lineY - 9, 14, 18, Color.Cyan);
+        DrawRect(sb, trainMarkerX - 3, lineY - 5, 6, 10, Color.White);
+    }
+
+    private void DrawConnectionBadges(SpriteBatch sb, string stationName, int centerX, int startY)
+    {
+        // Colores oficiales de líneas de Metro / FGC / Rodalies / Tram en Barcelona
+        var badges = new List<(string Label, Color Bg, Color Fg)>();
+
+        switch (stationName)
+        {
+            case "AV. CARRILET":
+                badges.Add(("L8", new Color(225, 130, 180), Color.White));
+                break;
+            case "RAMBLA JUST OLIVERAS":
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "TORRASSA":
+                badges.Add(("L9", new Color(240, 125, 25), Color.White));
+                badges.Add(("L10", new Color(30, 155, 220), Color.White));
+                break;
+            case "PLACA DE SANTS":
+                badges.Add(("L5", new Color(15, 105, 180), Color.White));
+                break;
+            case "ESPANYA":
+                badges.Add(("L3", new Color(45, 165, 75), Color.White));
+                badges.Add(("L8", new Color(225, 130, 180), Color.White));
+                break;
+            case "UNIVERSITAT":
+                badges.Add(("L2", new Color(150, 45, 145), Color.White));
+                break;
+            case "CATALUNYA":
+                badges.Add(("L3", new Color(45, 165, 75), Color.White));
+                badges.Add(("L6", new Color(115, 105, 175), Color.White));
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "URQUINAONA":
+                badges.Add(("L4", new Color(245, 185, 15), Color.Black));
+                break;
+            case "ARC DE TRIOMF":
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "MARINA":
+            case "GLORIES":
+                badges.Add(("T", new Color(0, 145, 130), Color.White));
+                break;
+            case "CLOT":
+                badges.Add(("L2", new Color(150, 45, 145), Color.White));
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "LA SAGRERA":
+                badges.Add(("L5", new Color(15, 105, 180), Color.White));
+                badges.Add(("L9", new Color(240, 125, 25), Color.White));
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "FABRA I PUIG":
+            case "SANT ANDREU":
+                badges.Add(("R", new Color(235, 135, 20), Color.White));
+                break;
+            case "FONDO":
+                badges.Add(("L9", new Color(240, 125, 25), Color.White));
+                break;
+        }
+
+        for (int b = 0; b < badges.Count; b++)
+        {
+            int by = startY + b * 14;
+            int bw = 22;
+            int bh = 12;
+            DrawRect(sb, centerX - bw / 2, by, bw, bh, badges[b].Bg);
+
+            float scale = 0.45f;
+            Vector2 sz = _font.MeasureString(badges[b].Label) * scale;
+            sb.DrawString(
+                _font,
+                badges[b].Label,
+                new Vector2(centerX - sz.X / 2f, by + (bh - sz.Y) / 2f),
+                badges[b].Fg,
+                0f,
+                Vector2.Zero,
+                scale,
+                SpriteEffects.None,
+                0f
+            );
+        }
     }
 }
