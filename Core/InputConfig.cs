@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Xna.Framework.Input;
 
 namespace videojuego.Core;
@@ -27,14 +28,12 @@ public class InputConfig
 
     public InputConfig()
     {
-        // [BLOQUE: Inicialización y carga de configuración]
         SetDefaults();
         Load();
     }
 
     public void SetDefaults()
     {
-        // [BLOQUE: Mapeo predeterminado de teclas]
         Bindings[GameAction.Accelerate] = Keys.W;
         Bindings[GameAction.Brake] = Keys.S;
         Bindings[GameAction.Doors] = Keys.Space;
@@ -43,46 +42,22 @@ public class InputConfig
 
     public void Save()
     {
-        // [BLOQUE: Serialización de controles]
-        var lines = new List<string>();
-        foreach (var pair in Bindings)
-        {
-            lines.Add($"{pair.Key}={pair.Value}");
-        }
-
-        // [BLOQUE: Escritura protegida en archivo]
-        try
-        {
-            File.WriteAllLines(ConfigFile, lines);
-        }
-        catch (Exception)
-        {
-            // Silently ignore
-        }
+        try { File.WriteAllLines(ConfigFile, Bindings.Select(pair => $"{pair.Key}={pair.Value}")); }
+        catch (Exception) { }
     }
 
     public void Load()
     {
-        // [BLOQUE: Verificación de existencia del archivo]
         if (!File.Exists(ConfigFile)) return;
 
-        // [BLOQUE: Lectura protegida y deserialización]
         try
         {
-            foreach (var line in File.ReadAllLines(ConfigFile))
-            {
-                var parts = line.Split('=');
+            foreach (var parts in File.ReadAllLines(ConfigFile).Select(line => line.Split('=')))
                 if (parts.Length == 2 &&
                     Enum.TryParse<GameAction>(parts[0], out var action) &&
                     Enum.TryParse<Keys>(parts[1], out var key))
-                {
                     Bindings[action] = key;
-                }
-            }
         }
-        catch (Exception)
-        {
-            // Silently ignore
-        }
+        catch (Exception) { }
     }
 }

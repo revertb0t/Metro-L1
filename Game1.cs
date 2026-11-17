@@ -36,7 +36,6 @@ public class Game1 : Game
 
     public Game1()
     {
-        // [BLOQUE: Configuración inicial de ventana y gráficos]
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -48,7 +47,6 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
-        // [BLOQUE: Inicialización de título, viewport y sesión]
         Window.Title = "Metro L1 by Revert_b0t";
         Window.AllowUserResizing = true;
 
@@ -60,7 +58,6 @@ public class Game1 : Game
 
     private void StartNewSession()
     {
-        // [BLOQUE: Reinicio de estado del simulador]
         _audio?.StopAnnouncement();
         _train = new MetroTrain();
         _signalingAI = new SignalingAI();
@@ -73,7 +70,6 @@ public class Game1 : Game
 
     protected override void LoadContent()
     {
-        // [BLOQUE: Carga de recursos gráficos y de audio]
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _font = Content.Load<SpriteFont>("MainFont");
 
@@ -84,41 +80,28 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
-        // [BLOQUE: Actualización de viewport e input]
         _viewport.Update(GraphicsDevice);
         var kb = Keyboard.GetState();
         var mouse = _viewport.GetVirtualMouseState(Mouse.GetState());
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        // [BLOQUE: Gestión de pantalla completa con F11]
         if (IsKeyPressed(kb, Keys.F11))
         {
             _graphics.IsFullScreen = !_graphics.IsFullScreen;
-            if (_graphics.IsFullScreen)
-            {
-                _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-                _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-            }
-            else
-            {
-                _graphics.PreferredBackBufferWidth = 1280;
-                _graphics.PreferredBackBufferHeight = 720;
-            }
+            _graphics.PreferredBackBufferWidth = _graphics.IsFullScreen ? GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width : 1280;
+            _graphics.PreferredBackBufferHeight = _graphics.IsFullScreen ? GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height : 720;
             _graphics.ApplyChanges();
         }
 
         float vw = _viewport.VirtualWidth;
 
-        // [BLOQUE: Máquina de estados de pantalla]
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
                 _audio.Update(dt, 0f, 0, false, false);
                 _currentScreen = _menuUI.UpdateMainMenu(dt, vw, kb, mouse, out bool startNew, out bool exitGame);
-                if (startNew)
-                    StartNewSession();
-                if (exitGame)
-                    Exit();
+                if (startNew) StartNewSession();
+                if (exitGame) Exit();
                 break;
 
             case ScreenState.Options:
@@ -133,7 +116,6 @@ public class Game1 : Game
                     _currentScreen = ScreenState.Paused;
                     break;
                 }
-
                 UpdateGameplay(dt, kb);
                 break;
 
@@ -141,10 +123,8 @@ public class Game1 : Game
                 _currentScreen = _menuUI.UpdatePause(dt, vw, kb, mouse, out bool restartRoute, out bool backToMenu);
                 if (_currentScreen == ScreenState.Playing)
                 {
-                    if (restartRoute)
-                        StartNewSession();
-                    else
-                        _audio.ResumeAll();
+                    if (restartRoute) StartNewSession();
+                    else _audio.ResumeAll();
                 }
                 else if (backToMenu)
                 {
@@ -160,13 +140,11 @@ public class Game1 : Game
 
     private void UpdateGameplay(float dt, KeyboardState kb)
     {
-        // [BLOQUE: Lectura de controles configurados]
         Keys accelKey = _inputConfig.Bindings[GameAction.Accelerate];
         Keys brakeKey = _inputConfig.Bindings[GameAction.Brake];
         Keys doorsKey = _inputConfig.Bindings[GameAction.Doors];
         Keys resetKey = _inputConfig.Bindings[GameAction.ResetATP];
 
-        // [BLOQUE: Gestión de entrada de usuario]
         if (IsKeyPressed(kb, accelKey))
         {
             int prevNotch = _train.Notch;
@@ -185,46 +163,35 @@ public class Game1 : Game
         {
             bool wereOpen = _train.DoorsOpen;
             _train.ToggleDoors();
-            if (wereOpen && !_train.DoorsOpen)
-                _audio.PlayDoorChime();
+            if (wereOpen && !_train.DoorsOpen) _audio.PlayDoorChime();
         }
 
-        if (IsKeyPressed(kb, resetKey))
-            _train.ResetEmergencyBrake();
+        if (IsKeyPressed(kb, resetKey)) _train.ResetEmergencyBrake();
 
-        // [BLOQUE: Actualización de sistemas de simulación]
         _train.Update(dt);
         _signalingAI.Update(dt, _train, _signals, _stations);
         _serviceManager.Update(dt, _train, _stations, _signals);
         _renderer.Update(dt, _train);
 
-        // [BLOQUE: Disparo de megafonía entre estaciones]
         for (int i = 1; i < _stations.Count; i++)
         {
-            var prevSt = _stations[i - 1];
             var nextSt = _stations[i];
+            if (nextSt.AnnouncementPlayed) continue;
 
-            if (!nextSt.AnnouncementPlayed)
+            float midPoint = (_stations[i - 1].PositionMeters + nextSt.PositionMeters) * 0.5f;
+            if (_train.PositionMeters >= midPoint && _train.PositionMeters < nextSt.PositionMeters)
             {
-                float midPoint = (prevSt.PositionMeters + nextSt.PositionMeters) * 0.5f;
-                if (_train.PositionMeters >= midPoint && _train.PositionMeters < nextSt.PositionMeters)
-                {
-                    nextSt.AnnouncementPlayed = true;
-                    _audio.PlayStationAnnouncement(nextSt.AudioFile);
-                    break;
-                }
+                nextSt.AnnouncementPlayed = true;
+                _audio.PlayStationAnnouncement(nextSt.AudioFile);
+                break;
             }
         }
 
-        // [BLOQUE: Actualización del audio según velocidad]
-        bool isOverspeed = _train.VelocityKmh > _serviceManager.CurrentSpeedLimitKmh;
-        _audio.Update(dt, _train.VelocityKmh, _train.Notch, isOverspeed, _train.EmergencyBrakeTriggered);
+        _audio.Update(dt, _train.VelocityKmh, _train.Notch,
+            _train.VelocityKmh > _serviceManager.CurrentSpeedLimitKmh, _train.EmergencyBrakeTriggered);
     }
 
-    private bool IsKeyPressed(KeyboardState current, Keys key)
-    {
-        return current.IsKeyDown(key) && !_prevKeyboard.IsKeyDown(key);
-    }
+    private bool IsKeyPressed(KeyboardState current, Keys key) => current.IsKeyDown(key) && !_prevKeyboard.IsKeyDown(key);
 
     protected override void Draw(GameTime gameTime)
     {
@@ -233,7 +200,6 @@ public class Game1 : Game
 
         float vw = _viewport.VirtualWidth;
 
-        // [BLOQUE: Renderizado según estado de pantalla]
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
@@ -260,7 +226,6 @@ public class Game1 : Game
 
     protected override void UnloadContent()
     {
-        // [BLOQUE: Liberación de recursos de audio]
         _audio?.Dispose();
         base.UnloadContent();
     }

@@ -17,40 +17,23 @@ public class ViewportManager
 
     public void Update(GraphicsDevice gd)
     {
-        // [BLOQUE: Cálculo de escala y dimensiones virtuales]
         if (gd == null) return;
 
         int screenW = gd.PresentationParameters.BackBufferWidth;
         int screenH = gd.PresentationParameters.BackBufferHeight;
-
         if (screenW <= 0 || screenH <= 0) return;
 
         Scale = screenH / VirtualHeight;
         if (Scale <= 0.01f) Scale = 1f;
-
         VirtualWidth = screenW / Scale;
         TransformMatrix = Matrix.CreateScale(Scale, Scale, 1f);
     }
 
-    public Point ScreenToVirtual(Point screenPos)
-    {
-        // [BLOQUE: Conversión de coordenadas de pantalla a virtuales]
-        return new Point((int)(screenPos.X / Scale), (int)(screenPos.Y / Scale));
-    }
+    public Point ScreenToVirtual(Point screenPos) => new((int)(screenPos.X / Scale), (int)(screenPos.Y / Scale));
 
     public MouseState GetVirtualMouseState(MouseState rawMouse)
     {
-        // [BLOQUE: Transformación del estado del ratón a coordenadas virtuales]
         Point vPos = ScreenToVirtual(rawMouse.Position);
-        return new MouseState(
-            vPos.X,
-            vPos.Y,
-            rawMouse.ScrollWheelValue,
-            rawMouse.LeftButton,
-            rawMouse.MiddleButton,
-            rawMouse.RightButton,
-            rawMouse.XButton1,
-            rawMouse.XButton2
-        );
+        return new MouseState(vPos.X, vPos.Y, rawMouse.ScrollWheelValue, rawMouse.LeftButton, rawMouse.MiddleButton, rawMouse.RightButton, rawMouse.XButton1, rawMouse.XButton2);
     }
 }

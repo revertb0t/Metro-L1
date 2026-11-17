@@ -9,87 +9,50 @@ namespace videojuego.Entities;
 public class MetroTrain
 {
     public float PositionMeters { get; set; } = 50f;
-    public float VelocityMps { get; private set; } = 0f; // Metros por segundo
+    public float VelocityMps { get; private set; }
     public float VelocityKmh => VelocityMps * 3.6f;
 
-    // Muescas de control: -4 (Emergencia), -3 a -1 (Freno), 0 (Deriva), +1 a +4 (Tracción)
-    public int Notch { get; private set; } = 0;
+    public int Notch { get; private set; }
     public bool DoorsOpen { get; private set; } = true;
-    public bool EmergencyBrakeTriggered { get; private set; } = false;
+    public bool EmergencyBrakeTriggered { get; private set; }
 
-    private const float MaxSpeedMps = 22.22f; // 80 km/h velocidad máxima comercial L1
+    private const float MaxSpeedMps = 22.22f;
     private const float TrainLengthMeters = 85f;
     public float Length => TrainLengthMeters;
 
     public void IncreaseNotch()
     {
-        // [BLOQUE: Incremento de muesca con validaciones de seguridad]
-        if (DoorsOpen || EmergencyBrakeTriggered) return;
-        Notch = Math.Clamp(Notch + 1, -4, 4);
+        if (!DoorsOpen && !EmergencyBrakeTriggered) Notch = Math.Clamp(Notch + 1, -4, 4);
     }
 
     public void DecreaseNotch()
     {
-        // [BLOQUE: Reducción de muesca (frenado progresivo)]
-        if (EmergencyBrakeTriggered) return;
-        Notch = Math.Clamp(Notch - 1, -4, 4);
+        if (!EmergencyBrakeTriggered) Notch = Math.Clamp(Notch - 1, -4, 4);
     }
 
     public void ToggleDoors()
     {
-        // [BLOQUE: Apertura/cierre de puertas con validación de velocidad]
-        // Solo se pueden abrir puertas si el tren está prácticamente detenido
-        if (Math.Abs(VelocityMps) < 0.05f)
-        {
-            DoorsOpen = !DoorsOpen;
-            if (DoorsOpen) Notch = -2; // Aplicar freno de estacionamiento al abrir puertas
-        }
+        if (Math.Abs(VelocityMps) < 0.05f) { DoorsOpen = !DoorsOpen; if (DoorsOpen) Notch = -2; }
     }
 
     public void TriggerEmergencyBrake()
     {
-        // [BLOQUE: Activación del freno de emergencia ATP]
         EmergencyBrakeTriggered = true;
         Notch = -4;
     }
 
     public void ResetEmergencyBrake()
     {
-        // [BLOQUE: Rearme del freno de emergencia]
-        if (Math.Abs(VelocityMps) < 0.01f)
-        {
-            EmergencyBrakeTriggered = false;
-            Notch = -2;
-        }
+        if (Math.Abs(VelocityMps) < 0.01f) { EmergencyBrakeTriggered = false; Notch = -2; }
     }
 
     public void Update(float dt)
     {
-        if (DoorsOpen && Notch > 0)
-            Notch = 0;
+        if (DoorsOpen && Notch > 0) Notch = 0;
 
-        // [BLOQUE: Cálculo de aceleración según muesca]
-        float acceleration = 0f;
+        float acceleration = Notch > 0 ? (Notch / 4f) * 1.1f : Notch < 0 ? (Notch / 4f) * 1.6f : -0.04f;
 
-        if (Notch > 0)
-        {
-            // Aceleración progresiva según muesca de tracción (máx ~1.1 m/s²)
-            acceleration = (Notch / 4f) * 1.1f;
-        }
-        else if (Notch < 0)
-        {
-            // Frenado progresivo (emergencia frena a 1.6 m/s²)
-            acceleration = (Notch / 4f) * 1.6f;
-        }
-        else
-        {
-            // Resistencia aerodinámica y de rodadura suave en deriva
-            acceleration = -0.04f;
-        }
-
-        // [BLOQUE: Integración de velocidad y posición]
-        VelocityMps += acceleration * dt;
-        VelocityMps = Math.Clamp(VelocityMps, 0f, MaxSpeedMps);
+        VelocityMps = Math.Clamp(VelocityMps + acceleration * dt, 0f, MaxSpeedMps);
         PositionMeters += VelocityMps * dt;
     }
 }

@@ -15,56 +15,27 @@ public class SignalingAI
 
     public void Update(float dt, MetroTrain playerTrain, List<Signal> signals, List<Station> stations)
     {
-        // [BLOQUE: Avance del tren precedente (fantasma)]
         _trafficTimer += dt;
-        float cycle = _trafficTimer % 42f;
+        if (_trafficTimer % 42f < 28f && _ghostTrainPosition < 20400f) _ghostTrainPosition += 16.5f * dt;
 
-        // El tren precedente circula durante 28s y hace parada de 14s en estaciones
-        if (cycle < 28f && _ghostTrainPosition < 20400f)
-        {
-            _ghostTrainPosition += 16.5f * dt;
-        }
-
-        // [BLOQUE: Reinserción del tren fantasma por distancia excesiva]
-        // Si el tren precedente se aleja demasiado (> 1400m), simulamos que entra otro tren en bloque
         if (_ghostTrainPosition - playerTrain.PositionMeters > 1400f)
-        {
             _ghostTrainPosition = playerTrain.PositionMeters + 850f;
-        }
 
-        // [BLOQUE: Cálculo de aspectos de señales por cantón]
-        foreach (var signal in signals)
+        for (int i = 0; i < signals.Count; i++)
         {
-            // Mantener siempre en rojo el tope final de Fondo
-            if (signal.SignText == "TOPE FIN L1")
-            {
-                signal.Aspect = SignalAspect.Red;
-                continue;
-            }
+            var signal = signals[i];
+            if (signal.SignText == "TOPE FIN L1") { signal.Aspect = SignalAspect.Red; continue; }
 
             float distanceToGhost = _ghostTrainPosition - signal.PositionMeters;
+            signal.Aspect = distanceToGhost > 0 && distanceToGhost < 230f
+                ? SignalAspect.Red
+                : distanceToGhost >= 230f && distanceToGhost < 500f ? SignalAspect.Yellow : SignalAspect.Green;
 
-            if (distanceToGhost > 0 && distanceToGhost < 230f)
-            {
-                signal.Aspect = SignalAspect.Red;
-            }
-            else if (distanceToGhost >= 230f && distanceToGhost < 500f)
-            {
-                signal.Aspect = SignalAspect.Yellow;
-            }
-            else
-            {
-                signal.Aspect = SignalAspect.Green;
-            }
-
-            // [BLOQUE: Protección ATP por rebase de señal en rojo]
             if (signal.Aspect == SignalAspect.Red &&
                 playerTrain.PositionMeters > signal.PositionMeters &&
                 playerTrain.PositionMeters < signal.PositionMeters + 5f &&
                 playerTrain.VelocityMps > 0.5f)
-            {
                 playerTrain.TriggerEmergencyBrake();
-            }
         }
     }
 }

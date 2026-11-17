@@ -10,7 +10,6 @@ public static class Line1Builder
 {
     public static (List<Station> Stations, List<Signal> Signals) BuildFullLine1()
     {
-        // [BLOQUE: Definición de las 30 estaciones con distancias reales y correspondencias]
         var rawStations = new (string Name, float DistanceFromPrev, string Connections, int Track, string AudioFile)[]
         {
             ("Hospital de Bellvitge", 50f, "TERMINAL L1", 1, ""),
@@ -45,8 +44,7 @@ public static class Line1Builder
             ("Fondo", 740f, "L9N · FIN DE LINEA", 1, "EstacioFondo.mp3")
         };
 
-        // [BLOQUE: Generación secuencial de estaciones y posiciones kilométricas]
-        var stations = new List<Station>();
+        var stations = new List<Station>(rawStations.Length);
         var signals = new List<Signal>();
         float currentPos = 0f;
 
@@ -54,30 +52,25 @@ public static class Line1Builder
         {
             var data = rawStations[i];
             currentPos += data.DistanceFromPrev;
-
             stations.Add(new Station(data.Name, currentPos, data.Connections, 95f, data.Track, data.AudioFile));
 
-            // [BLOQUE: Generación automática de señales por cantón (salida, intermedia, entrada)]
-            if (i < rawStations.Length - 1)
-            {
-                float nextDist = rawStations[i + 1].DistanceFromPrev;
-                int nextTrack = rawStations[i + 1].Track;
-
-                signals.Add(new Signal(currentPos + 105f, SignalAspect.Green, $"SALIDA C{i + 1:00}", 75));
-
-                float midPos = currentPos + (nextDist * 0.52f);
-                int midSpeed = nextDist >= 720f ? 80 : 75;
-                signals.Add(new Signal(midPos, SignalAspect.Green, nextDist >= 720f ? "RECTA 80" : $"CANTON {i + 1:00}B", midSpeed));
-
-                float entryPos = currentPos + nextDist - 120f;
-                signals.Add(nextTrack == 2
-                    ? new Signal(entryPos, SignalAspect.Green, "AGUJAS 45", 45)
-                    : new Signal(entryPos, SignalAspect.Green, "ENTRADA 65", 65));
-            }
-            else
+            if (i >= rawStations.Length - 1)
             {
                 signals.Add(new Signal(currentPos + 25f, SignalAspect.Red, "TOPE FIN L1", 15));
+                continue;
             }
+
+            float nextDist = rawStations[i + 1].DistanceFromPrev;
+            int nextTrack = rawStations[i + 1].Track;
+
+            signals.Add(new Signal(currentPos + 105f, SignalAspect.Green, $"SALIDA C{i + 1:00}", 75));
+            signals.Add(new Signal(currentPos + (nextDist * 0.52f), SignalAspect.Green,
+                nextDist >= 720f ? "RECTA 80" : $"CANTON {i + 1:00}B", nextDist >= 720f ? 80 : 75));
+
+            float entryPos = currentPos + nextDist - 120f;
+            signals.Add(nextTrack == 2
+                ? new Signal(entryPos, SignalAspect.Green, "AGUJAS 45", 45)
+                : new Signal(entryPos, SignalAspect.Green, "ENTRADA 65", 65));
         }
 
         return (stations, signals);
