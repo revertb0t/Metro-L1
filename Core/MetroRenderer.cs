@@ -1,3 +1,4 @@
+// Designed & Developed by Revert_b0t
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
@@ -451,28 +452,41 @@ public class MetroRenderer : IDisposable
             float textScale = 0.56f;
             Color nameColor = passed ? Color.Black : new Color(75, 80, 90);
             string displayName = st.Name
-                .Replace("HOSPITAL DE BELLVITGE", "Hospital de Bellvitge")
+                .Replace("Rambla Just Oliveras", "Rbla. Just Oliveras")
                 .Replace("RAMBLA JUST OLIVERAS", "Rbla. Just Oliveras");
 
-            sb.DrawString(_font, displayName, new Vector2(sx - 4, lineY - 14), nameColor, -MathHelper.PiOver4, Vector2.Zero, textScale, SpriteEffects.None, 0f);
+            // 1. Subir el punto de inicio del texto a lineY - 18 para que nunca toque el nodo ni el cursor
+            sb.DrawString(
+                _font,
+                displayName,
+                new Vector2(sx - 2, lineY - 18),
+                nameColor,
+                -MathHelper.PiOver4,
+                Vector2.Zero,
+                textScale,
+                SpriteEffects.None,
+                0f
+            );
 
+            // 2. Nodos de estación más compactos (12x12 px en enlaces, 3x10 px en paradas normales)
             if (hasConnections)
             {
-                DrawRect(sb, sx - 8, lineY - 8, 16, 16, Color.Black);
-                DrawRect(sb, sx - 5, lineY - 5, 10, 10, passed ? Color.Gold : Color.White);
+                DrawRect(sb, sx - 6, lineY - 6, 12, 12, Color.Black);
+                DrawRect(sb, sx - 4, lineY - 4, 8, 8, passed ? Color.Gold : Color.White);
             }
             else
             {
-                DrawRect(sb, sx - 2, lineY - 9, 4, 14, passed ? _tmbRed : new Color(210, 120, 115));
+                DrawRect(sb, sx - 1, lineY - 7, 3, 11, passed ? _tmbRed : new Color(210, 120, 115));
             }
 
             DrawConnectionBadges(sb, st.Name, sx, lineY + 13);
         }
 
         // [BLOQUE: Marcador gráfico de posición en tiempo real del tren]
-        DrawRect(sb, trainMarkerX - 9, lineY - 11, 18, 22, Color.Black);
-        DrawRect(sb, trainMarkerX - 7, lineY - 9, 14, 18, Color.Cyan);
-        DrawRect(sb, trainMarkerX - 3, lineY - 5, 6, 10, Color.White);
+        // 4. Indicador compacto de posición del tren (no invade la zona de textos)
+        DrawRect(sb, trainMarkerX - 6, lineY - 8, 12, 16, Color.Black);
+        DrawRect(sb, trainMarkerX - 4, lineY - 6, 8, 12, Color.Cyan);
+        DrawRect(sb, trainMarkerX - 2, lineY - 3, 4, 6, Color.White);
     }
 
     private void DrawCabinHUD(SpriteBatch sb, int vw, MetroTrain train, ServiceManager service, InputConfig config)
@@ -565,54 +579,74 @@ public class MetroRenderer : IDisposable
 
         switch (stationName)
         {
+            case "Av. Carrilet":
             case "AV. CARRILET":
                 _badgeBuffer.Add(("L8", new Color(225, 130, 180), Color.White));
                 break;
+            case "Rambla Just Oliveras":
             case "RAMBLA JUST OLIVERAS":
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "Torrassa":
             case "TORRASSA":
                 _badgeBuffer.Add(("L9", new Color(240, 125, 25), Color.White));
                 _badgeBuffer.Add(("L10", new Color(30, 155, 220), Color.White));
                 break;
+            case "Plaça de Sants":
+            case "Plaça De Sants":
             case "PLACA DE SANTS":
                 _badgeBuffer.Add(("L5", new Color(15, 105, 180), Color.White));
                 break;
+            case "Espanya":
             case "ESPANYA":
                 _badgeBuffer.Add(("L3", new Color(45, 165, 75), Color.White));
                 _badgeBuffer.Add(("L8", new Color(225, 130, 180), Color.White));
                 break;
+            case "Universitat":
             case "UNIVERSITAT":
                 _badgeBuffer.Add(("L2", new Color(150, 45, 145), Color.White));
                 break;
+            case "Catalunya":
             case "CATALUNYA":
                 _badgeBuffer.Add(("L3", new Color(45, 165, 75), Color.White));
                 _badgeBuffer.Add(("L6", new Color(115, 105, 175), Color.White));
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "Urquinaona":
             case "URQUINAONA":
                 _badgeBuffer.Add(("L4", new Color(245, 185, 15), Color.Black));
                 break;
+            case "Arc de Triomf":
             case "ARC DE TRIOMF":
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "Marina":
             case "MARINA":
+                _badgeBuffer.Add(("T", new Color(0, 145, 130), Color.White));
+                break;
+            case "Glòries":
+            case "Glories":
             case "GLORIES":
                 _badgeBuffer.Add(("T", new Color(0, 145, 130), Color.White));
                 break;
+            case "Clot":
             case "CLOT":
                 _badgeBuffer.Add(("L2", new Color(150, 45, 145), Color.White));
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "La Sagrera":
             case "LA SAGRERA":
                 _badgeBuffer.Add(("L5", new Color(15, 105, 180), Color.White));
                 _badgeBuffer.Add(("L9", new Color(240, 125, 25), Color.White));
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "Fabra i Puig":
             case "FABRA I PUIG":
+            case "Sant Andreu":
             case "SANT ANDREU":
                 _badgeBuffer.Add(("R", new Color(235, 135, 20), Color.White));
                 break;
+            case "Fondo":
             case "FONDO":
                 _badgeBuffer.Add(("L9", new Color(240, 125, 25), Color.White));
                 break;

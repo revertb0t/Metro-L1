@@ -1,3 +1,4 @@
+// Designed & Developed by Revert_b0t
 using System;
 using System.IO;
 using Microsoft.Xna.Framework.Audio;

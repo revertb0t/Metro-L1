@@ -1,3 +1,4 @@
+// Designed & Developed by Revert_b0t
 using System;
 using System.Collections.Generic;
 using videojuego.Entities;
@@ -18,8 +19,6 @@ public class ServiceManager
     public string StatusMessage { get; private set; } = "EN ESTACION - Cierre puertas [ESPACIO] para salir";
     public float BoardingProgress { get; private set; } = 1f; // 0.0 a 1.0
     public bool IsBoarding { get; private set; } = false;
-
-    private Station _activeStation = null;
 
     public void Update(float dt, MetroTrain train, List<Station> stations, List<Signal> signals)
     {

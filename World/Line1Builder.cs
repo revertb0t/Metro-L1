@@ -1,3 +1,4 @@
+// Designed & Developed by Revert_b0t
 using System.Collections.Generic;
 
 namespace videojuego.World;
@@ -12,36 +13,36 @@ public static class Line1Builder
         // [BLOQUE: Definición de las 30 estaciones con distancias reales y correspondencias]
         var rawStations = new (string Name, float DistanceFromPrev, string Connections, int Track, string AudioFile)[]
         {
-            ("HOSPITAL DE BELLVITGE", 50f, "TERMINAL L1", 1, ""),
-            ("BELLVITGE", 650f, "", 1, "EstacioBellvitge.mp3"),
-            ("AV. CARRILET", 700f, "FGC L8", 2, "EstacioCarrilet.mp3"),
-            ("RAMBLA JUST OLIVERAS", 680f, "RODALIES", 1, "EstacioJustOliveras.mp3"),
-            ("CAN SERRA", 650f, "", 1, "EstacioCanSerra.mp3"),
-            ("FLORIDA", 620f, "", 1, "EstacioFlorida.mp3"),
-            ("TORRASSA", 680f, "L9S · L10S", 2, "EstacioTorrassa.mp3"),
-            ("SANTA EULALIA", 650f, "", 1, "EstacioSantaEulalia.mp3"),
-            ("MERCAT NOU", 600f, "", 1, "EstacioMercatNou.mp3"),
-            ("PLACA DE SANTS", 640f, "L5", 1, "EstacioPlSants.mp3"),
-            ("HOSTAFRANCS", 580f, "", 1, "EstacioHostafrancs.mp3"),
-            ("ESPANYA", 660f, "L3 · FGC", 2, "EstacioEspanya.mp3"),
-            ("ROCAFORT", 620f, "", 1, "EstacioRocafort.mp3"),
-            ("URGELL", 600f, "", 1, "EstacioUrgell.mp3"),
-            ("UNIVERSITAT", 640f, "L2", 1, "EstacioUniversitat.mp3"),
-            ("CATALUNYA", 650f, "L3 · FGC · RODALIES", 2, "EstacioCatalunya.mp3"),
-            ("URQUINAONA", 600f, "L4", 1, "EstacioUrquinaona.mp3"),
-            ("ARC DE TRIOMF", 680f, "RODALIES · BUS NORD", 1, "EstacioArcTriomf.mp3"),
-            ("MARINA", 660f, "TRAM T4", 1, "EstacioMarina.mp3"),
-            ("GLORIES", 680f, "TRAM T4·T5·T6", 2, "EstacioGlories.mp3"),
-            ("CLOT", 720f, "L2 · RODALIES", 1, "EstacioClot.mp3"),
-            ("NAVAS", 650f, "", 1, "EstacioNavas.mp3"),
-            ("LA SAGRERA", 700f, "L5 · L9N · L10N · ROD", 2, "EstacioSagrera.mp3"),
-            ("FABRA I PUIG", 740f, "RODALIES · BUS", 1, "EstacioFabraPuig.mp3"),
-            ("SANT ANDREU", 720f, "RODALIES", 1, "EstacioSantAndreu.mp3"),
-            ("TORRAS I BAGES", 700f, "", 1, "EstacioTorresBages.mp3"),
-            ("TRINITAT VELLA", 780f, "", 1, "EstacioTrinitatVella.mp3"),
-            ("BARO DE VIVER", 720f, "", 1, "EstacioBaroViver.mp3"),
-            ("SANTA COLOMA", 760f, "", 1, "EstacioSantaColoma.mp3"),
-            ("FONDO", 740f, "L9N · FIN DE LINEA", 1, "EstacioFondo.mp3")
+            ("Hospital de Bellvitge", 50f, "TERMINAL L1", 1, ""),
+            ("Bellvitge", 650f, "", 1, "EstacioBellvitge.mp3"),
+            ("Av. Carrilet", 700f, "FGC L8", 2, "EstacioCarrilet.mp3"),
+            ("Rambla Just Oliveras", 680f, "RODALIES", 1, "EstacioJustOliveras.mp3"),
+            ("Can Serra", 650f, "", 1, "EstacioCanSerra.mp3"),
+            ("Florida", 620f, "", 1, "EstacioFlorida.mp3"),
+            ("Torrassa", 680f, "L9S · L10S", 2, "EstacioTorrassa.mp3"),
+            ("Santa Eulàlia", 650f, "", 1, "EstacioSantaEulalia.mp3"),
+            ("Mercat Nou", 600f, "", 1, "EstacioMercatNou.mp3"),
+            ("Plaça de Sants", 640f, "L5", 1, "EstacioPlSants.mp3"),
+            ("Hostafrancs", 580f, "", 1, "EstacioHostafrancs.mp3"),
+            ("Espanya", 660f, "L3 · FGC", 2, "EstacioEspanya.mp3"),
+            ("Rocafort", 620f, "", 1, "EstacioRocafort.mp3"),
+            ("Urgell", 600f, "", 1, "EstacioUrgell.mp3"),
+            ("Universitat", 640f, "L2", 1, "EstacioUniversitat.mp3"),
+            ("Catalunya", 650f, "L3 · FGC · RODALIES", 2, "EstacioCatalunya.mp3"),
+            ("Urquinaona", 600f, "L4", 1, "EstacioUrquinaona.mp3"),
+            ("Arc de Triomf", 680f, "RODALIES · BUS NORD", 1, "EstacioArcTriomf.mp3"),
+            ("Marina", 660f, "TRAM T4", 1, "EstacioMarina.mp3"),
+            ("Glòries", 680f, "TRAM T4·T5·T6", 2, "EstacioGlories.mp3"),
+            ("Clot", 720f, "L2 · RODALIES", 1, "EstacioClot.mp3"),
+            ("Navas", 650f, "", 1, "EstacioNavas.mp3"),
+            ("La Sagrera", 700f, "L5 · L9N · L10N · ROD", 2, "EstacioSagrera.mp3"),
+            ("Fabra i Puig", 740f, "RODALIES · BUS", 1, "EstacioFabraPuig.mp3"),
+            ("Sant Andreu", 720f, "RODALIES", 1, "EstacioSantAndreu.mp3"),
+            ("Torras i Bages", 700f, "", 1, "EstacioTorresBages.mp3"),
+            ("Trinitat Vella", 780f, "", 1, "EstacioTrinitatVella.mp3"),
+            ("Baró de Viver", 720f, "", 1, "EstacioBaroViver.mp3"),
+            ("Santa Coloma", 760f, "", 1, "EstacioSantaColoma.mp3"),
+            ("Fondo", 740f, "L9N · FIN DE LINEA", 1, "EstacioFondo.mp3")
         };
 
         // [BLOQUE: Generación secuencial de estaciones y posiciones kilométricas]

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+// Designed & Developed by Revert_b0t
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;

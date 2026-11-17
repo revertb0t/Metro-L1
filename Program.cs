@@ -1,4 +1,5 @@
-﻿// ============================================================================
+// Designed & Developed by Revert_b0t
+// ============================================================================
 // Punto de entrada principal (Entry Point) del videojuego.
 // Se encarga de inicializar y arrancar la instancia del juego (Game1),
 // así como de capturar y registrar de forma segura cualquier excepción no controlada.
