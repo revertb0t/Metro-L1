@@ -2,10 +2,14 @@ using System.Collections.Generic;
 
 namespace videojuego.World;
 
+/// <summary>
+/// Constructor estático de la ruta completa de la Línea 1 del Metro de Barcelona (Hospital de Bellvitge — Fondo). Genera las 30 estaciones con sus posiciones kilométricas, correspondencias y archivos de megafonía, así como la señalización automática de cantones.
+/// </summary>
 public static class Line1Builder
 {
     public static (List<Station> Stations, List<Signal> Signals) BuildFullLine1()
     {
+        // [BLOQUE: Definición de las 30 estaciones con distancias reales y correspondencias]
         var rawStations = new (string Name, float DistanceFromPrev, string Connections, int Track, string AudioFile)[]
         {
             ("HOSPITAL DE BELLVITGE", 50f, "TERMINAL L1", 1, ""),
@@ -40,6 +44,7 @@ public static class Line1Builder
             ("FONDO", 740f, "L9N · FIN DE LINEA", 1, "EstacioFondo.mp3")
         };
 
+        // [BLOQUE: Generación secuencial de estaciones y posiciones kilométricas]
         var stations = new List<Station>();
         var signals = new List<Signal>();
         float currentPos = 0f;
@@ -51,6 +56,7 @@ public static class Line1Builder
 
             stations.Add(new Station(data.Name, currentPos, data.Connections, 95f, data.Track, data.AudioFile));
 
+            // [BLOQUE: Generación automática de señales por cantón (salida, intermedia, entrada)]
             if (i < rawStations.Length - 1)
             {
                 float nextDist = rawStations[i + 1].DistanceFromPrev;

@@ -2,6 +2,9 @@ using System;
 
 namespace videojuego.Entities;
 
+/// <summary>
+/// Modelo físico del tren Serie 6000 de la L1 de Barcelona. Gestiona posición, velocidad, muescas de tracción/frenado (-4 a +4), apertura de puertas y freno de emergencia ATP. Velocidad máxima comercial: 80 km/h.
+/// </summary>
 public class MetroTrain
 {
     public float PositionMeters { get; set; } = 50f;
@@ -19,18 +22,21 @@ public class MetroTrain
 
     public void IncreaseNotch()
     {
+        // [BLOQUE: Incremento de muesca con validaciones de seguridad]
         if (DoorsOpen || EmergencyBrakeTriggered) return;
         Notch = Math.Clamp(Notch + 1, -4, 4);
     }
 
     public void DecreaseNotch()
     {
+        // [BLOQUE: Reducción de muesca (frenado progresivo)]
         if (EmergencyBrakeTriggered) return;
         Notch = Math.Clamp(Notch - 1, -4, 4);
     }
 
     public void ToggleDoors()
     {
+        // [BLOQUE: Apertura/cierre de puertas con validación de velocidad]
         // Solo se pueden abrir puertas si el tren está prácticamente detenido
         if (Math.Abs(VelocityMps) < 0.05f)
         {
@@ -41,12 +47,14 @@ public class MetroTrain
 
     public void TriggerEmergencyBrake()
     {
+        // [BLOQUE: Activación del freno de emergencia ATP]
         EmergencyBrakeTriggered = true;
         Notch = -4;
     }
 
     public void ResetEmergencyBrake()
     {
+        // [BLOQUE: Rearme del freno de emergencia]
         if (Math.Abs(VelocityMps) < 0.01f)
         {
             EmergencyBrakeTriggered = false;
@@ -59,6 +67,7 @@ public class MetroTrain
         if (DoorsOpen && Notch > 0)
             Notch = 0;
 
+        // [BLOQUE: Cálculo de aceleración según muesca]
         float acceleration = 0f;
 
         if (Notch > 0)
@@ -77,6 +86,7 @@ public class MetroTrain
             acceleration = -0.04f;
         }
 
+        // [BLOQUE: Integración de velocidad y posición]
         VelocityMps += acceleration * dt;
         VelocityMps = Math.Clamp(VelocityMps, 0f, MaxSpeedMps);
         PositionMeters += VelocityMps * dt;

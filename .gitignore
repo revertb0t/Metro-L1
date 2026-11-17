@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Metro L1 - Configuración local del usuario y logs de error
+controls.cfg

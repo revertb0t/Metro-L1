@@ -5,8 +5,13 @@ using videojuego.World;
 
 namespace videojuego.Systems;
 
+/// <summary>
+/// Sistema de gestión del servicio de la línea L1. Controla la puntuación, pasajeros, límites de velocidad, embarque/desembarque, supervisión ATP y mensajes de estado del CCM (Centro de Control de Movimiento).
+/// </summary>
 public class ServiceManager
 {
+    private static readonly Random _rng = new(42);
+
     public int Score { get; private set; } = 1000;
     public int PassengersOnBoard { get; private set; } = 42;
     public int CurrentSpeedLimitKmh { get; private set; } = 75;
@@ -18,7 +23,7 @@ public class ServiceManager
 
     public void Update(float dt, MetroTrain train, List<Station> stations, List<Signal> signals)
     {
-        // 1. Determinar el límite de velocidad vigente según la última señal rebasada
+        // [BLOQUE: Determinación del límite de velocidad]
         int activeLimit = 75;
         foreach (var sig in signals)
         {
@@ -29,7 +34,7 @@ public class ServiceManager
         }
         CurrentSpeedLimitKmh = activeLimit;
 
-        // Supervisión ATP por exceso de velocidad (+8 km/h de margen sobre el límite)
+        // [BLOQUE: Supervisión ATP]
         if (train.VelocityKmh > CurrentSpeedLimitKmh + 8f && !train.EmergencyBrakeTriggered)
         {
             train.TriggerEmergencyBrake();
@@ -38,13 +43,14 @@ public class ServiceManager
             return;
         }
 
+        // [BLOQUE: Estado de emergencia]
         if (train.EmergencyBrakeTriggered)
         {
             StatusMessage = "EMERGENCIA ACTIVA - Detenga el tren y pulse [R]";
             return;
         }
 
-        // 2. Comprobar proximidad a estaciones
+        // [BLOQUE: Detección de proximidad a estaciones]
         Station nearest = null;
         float minDistance = float.MaxValue;
 
@@ -70,6 +76,7 @@ public class ServiceManager
                 }
                 else if (train.DoorsOpen)
                 {
+                    // [BLOQUE: Gestión de embarque]
                     if (!nearest.Visited && nearest.PositionMeters > 60f)
                     {
                         if (!IsBoarding)
@@ -88,7 +95,7 @@ public class ServiceManager
                             BoardingProgress = 1f;
                             IsBoarding = false;
                             nearest.Visited = true;
-                            PassengersOnBoard = Math.Clamp(PassengersOnBoard + new Random().Next(-15, 35), 10, 450);
+                            PassengersOnBoard = Math.Clamp(PassengersOnBoard + _rng.Next(-15, 35), 10, 450);
                             StatusMessage = $"Embarque completado en {nearest.Name}. Pulse [ESPACIO] para cerrar";
                         }
                     }
@@ -105,7 +112,7 @@ public class ServiceManager
         }
         else
         {
-            // En pleno túnel entre estaciones
+            // [BLOQUE: Navegación en túnel]
             if (IsBoarding)
             {
                 IsBoarding = false;

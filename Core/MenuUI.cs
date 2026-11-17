@@ -13,7 +13,10 @@ public enum ScreenState
     Paused
 }
 
-public class MenuUI
+/// <summary>
+/// Gestiona la interfaz de usuario de los menús del simulador (principal, opciones, pausa). Dibuja tarjetas y botones con la paleta visual TMB oficial. Implementa IDisposable para liberar la textura auxiliar.
+/// </summary>
+public class MenuUI : IDisposable
 {
     private readonly Texture2D _pixel;
     private readonly SpriteFont _font;
@@ -48,14 +51,24 @@ public class MenuUI
 
     public MenuUI(GraphicsDevice gd, SpriteFont font, InputConfig inputConfig)
     {
+        // [BLOQUE: Asignación de dependencias]
         _font = font;
         _inputConfig = inputConfig;
+
+        // [BLOQUE: Inicialización de textura auxiliar 1x1]
         _pixel = new Texture2D(gd, 1, 1);
         _pixel.SetData(new[] { Color.White });
     }
 
+    public void Dispose()
+    {
+        // [BLOQUE: Liberación de recursos gráficos]
+        _pixel?.Dispose();
+    }
+
     public void ResetPauseSelection()
     {
+        // [BLOQUE: Cooldown de transición]
         _pauseIndex = 0;
         _transitionCooldown = 0.20f;
     }
@@ -65,6 +78,7 @@ public class MenuUI
         startNewRoute = false;
         exitGame = false;
 
+        // [BLOQUE: Cooldown de transición]
         if (_transitionCooldown > 0f)
         {
             _transitionCooldown -= dt;
@@ -73,12 +87,14 @@ public class MenuUI
             return ScreenState.MainMenu;
         }
 
+        // [BLOQUE: Navegación por teclado]
         if (IsKeyPressed(kb, Keys.Up) || IsKeyPressed(kb, Keys.W))
             _menuIndex = (_menuIndex - 1 + _menuOptions.Length) % _menuOptions.Length;
 
         if (IsKeyPressed(kb, Keys.Down) || IsKeyPressed(kb, Keys.S))
             _menuIndex = (_menuIndex + 1) % _menuOptions.Length;
 
+        // [BLOQUE: Detección de clic de ratón]
         int startY = 500;
         int btnWidth = 540;
         int btnX = (int)((virtualWidth - btnWidth) / 2f);
@@ -94,9 +110,11 @@ public class MenuUI
             }
         }
 
+        // [BLOQUE: Confirmación por teclado]
         if (IsKeyPressed(kb, Keys.Enter) || IsKeyPressed(kb, Keys.Space))
             return ExecuteMainMenuAction(_menuIndex, kb, mouse, out startNewRoute, out exitGame);
 
+        // [BLOQUE: Actualización de estado de periféricos]
         _prevKb = kb;
         _prevMouse = mouse;
         return ScreenState.MainMenu;
@@ -104,12 +122,14 @@ public class MenuUI
 
     private ScreenState ExecuteMainMenuAction(int index, KeyboardState kb, MouseState mouse, out bool startNewRoute, out bool exitGame)
     {
+        // [BLOQUE: Cooldown de transición]
         startNewRoute = false;
         exitGame = false;
         _prevKb = kb;
         _prevMouse = mouse;
         _transitionCooldown = 0.20f;
 
+        // [BLOQUE: Selección de acción de menú principal]
         switch (index)
         {
             case 0:
@@ -129,6 +149,7 @@ public class MenuUI
 
     public ScreenState UpdateOptions(float dt, float virtualWidth, KeyboardState kb, MouseState mouse)
     {
+        // [BLOQUE: Cooldown de transición]
         if (_transitionCooldown > 0f)
         {
             _transitionCooldown -= dt;
@@ -137,6 +158,7 @@ public class MenuUI
             return ScreenState.Options;
         }
 
+        // [BLOQUE: Asignación interactiva de tecla]
         if (_waitingForKey)
         {
             foreach (Keys k in kb.GetPressedKeys())
@@ -162,12 +184,14 @@ public class MenuUI
 
         int totalItems = _configurableActions.Length + 2;
 
+        // [BLOQUE: Navegación por teclado]
         if (IsKeyPressed(kb, Keys.Up) || IsKeyPressed(kb, Keys.W))
             _optionIndex = (_optionIndex - 1 + totalItems) % totalItems;
 
         if (IsKeyPressed(kb, Keys.Down) || IsKeyPressed(kb, Keys.S))
             _optionIndex = (_optionIndex + 1) % totalItems;
 
+        // [BLOQUE: Cancelación y regreso con Escape]
         if (IsKeyPressed(kb, Keys.Escape))
         {
             _prevKb = kb;
@@ -176,6 +200,7 @@ public class MenuUI
             return ScreenState.MainMenu;
         }
 
+        // [BLOQUE: Detección de clic de ratón]
         int startY = 330;
         int rowWidth = 780;
         int rowX = (int)((virtualWidth - rowWidth) / 2f);
@@ -191,9 +216,11 @@ public class MenuUI
             }
         }
 
+        // [BLOQUE: Confirmación por teclado]
         if (IsKeyPressed(kb, Keys.Enter) || IsKeyPressed(kb, Keys.Space))
             return ExecuteOptionItem(_optionIndex, kb, mouse);
 
+        // [BLOQUE: Actualización de estado de periféricos]
         _prevKb = kb;
         _prevMouse = mouse;
         return ScreenState.Options;
@@ -201,10 +228,12 @@ public class MenuUI
 
     private ScreenState ExecuteOptionItem(int index, KeyboardState kb, MouseState mouse)
     {
+        // [BLOQUE: Cooldown de transición]
         _prevKb = kb;
         _prevMouse = mouse;
         _transitionCooldown = 0.20f;
 
+        // [BLOQUE: Ejecución de opción seleccionada]
         if (index < _configurableActions.Length)
         {
             _waitingForKey = true;
@@ -227,6 +256,7 @@ public class MenuUI
         restartRoute = false;
         backToMenu = false;
 
+        // [BLOQUE: Cooldown de transición]
         if (_transitionCooldown > 0f)
         {
             _transitionCooldown -= dt;
@@ -235,6 +265,7 @@ public class MenuUI
             return ScreenState.Paused;
         }
 
+        // [BLOQUE: Reanudación rápida con Escape]
         if (IsKeyPressed(kb, Keys.Escape))
         {
             _prevKb = kb;
@@ -243,12 +274,14 @@ public class MenuUI
             return ScreenState.Playing;
         }
 
+        // [BLOQUE: Navegación por teclado]
         if (IsKeyPressed(kb, Keys.Up) || IsKeyPressed(kb, Keys.W))
             _pauseIndex = (_pauseIndex - 1 + _pauseOptions.Length) % _pauseOptions.Length;
 
         if (IsKeyPressed(kb, Keys.Down) || IsKeyPressed(kb, Keys.S))
             _pauseIndex = (_pauseIndex + 1) % _pauseOptions.Length;
 
+        // [BLOQUE: Detección de clic de ratón]
         int btnWidth = 520;
         int btnX = (int)((virtualWidth - btnWidth) / 2f);
         int startY = 470;
@@ -264,9 +297,11 @@ public class MenuUI
             }
         }
 
+        // [BLOQUE: Confirmación por teclado]
         if (IsKeyPressed(kb, Keys.Enter) || IsKeyPressed(kb, Keys.Space))
             return ExecutePauseAction(_pauseIndex, kb, mouse, out restartRoute, out backToMenu);
 
+        // [BLOQUE: Actualización de estado de periféricos]
         _prevKb = kb;
         _prevMouse = mouse;
         return ScreenState.Paused;
@@ -274,12 +309,14 @@ public class MenuUI
 
     private ScreenState ExecutePauseAction(int index, KeyboardState kb, MouseState mouse, out bool restartRoute, out bool backToMenu)
     {
+        // [BLOQUE: Cooldown de transición]
         restartRoute = false;
         backToMenu = false;
         _prevKb = kb;
         _prevMouse = mouse;
         _transitionCooldown = 0.20f;
 
+        // [BLOQUE: Selección de acción de menú de pausa]
         switch (index)
         {
             case 0: return ScreenState.Playing;
@@ -295,6 +332,7 @@ public class MenuUI
 
     public void DrawMainMenu(SpriteBatch sb, float virtualWidth)
     {
+        // [BLOQUE: Fondo y franjas TMB]
         int vw = (int)Math.Ceiling(virtualWidth);
         DrawRect(sb, 0, 0, vw, 1080, _bgDark);
 
@@ -302,7 +340,7 @@ public class MenuUI
         DrawRect(sb, 0, 0, vw, 8, _tmbRed);
         DrawRect(sb, 0, 1072, vw, 8, _tmbRed);
 
-        // Tarjeta de cabecera moderna centrada dinámicamente
+        // [BLOQUE: Tarjeta de cabecera]
         int cardW = 920;
         int cardH = 260;
         int cardX = (vw - cardW) / 2;
@@ -328,7 +366,7 @@ public class MenuUI
         sb.DrawString(_font, "Hospital de Bellvitge  —  Fondo  (30 estaciones)", new Vector2(textX, cardY + 156), Color.LightGray, 0f, Vector2.Zero, 0.95f, SpriteEffects.None, 0f);
         sb.DrawString(_font, "Unidad Serie 6000 · Enclavamiento CCM y Proteccion ATP", new Vector2(textX, cardY + 188), Color.Gray, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
 
-        // Botones del menú principal
+        // [BLOQUE: Botones del menú]
         int startY = 500;
         int btnWidth = 540;
         int btnX = (vw - btnWidth) / 2;
@@ -345,19 +383,23 @@ public class MenuUI
             DrawCenteredText(sb, _menuOptions[i], rect, selected ? Color.White : Color.LightGray, 1.0f);
         }
 
+        // [BLOQUE: Indicaciones y ayuda de navegación]
         DrawCenteredText(sb, "Flechas / W-S / Raton para navegar   ·   Enter / Clic para confirmar", new Rectangle(0, 990, vw, 40), Color.Gray, 0.85f);
     }
 
     public void DrawOptions(SpriteBatch sb, float virtualWidth)
     {
+        // [BLOQUE: Fondo y franjas TMB]
         int vw = (int)Math.Ceiling(virtualWidth);
         DrawRect(sb, 0, 0, vw, 1080, _bgDark);
         DrawRect(sb, 0, 0, vw, 8, _tmbRed);
         DrawRect(sb, 0, 1072, vw, 8, _tmbRed);
 
+        // [BLOQUE: Tarjeta de cabecera]
         DrawCenteredText(sb, "Configuracion de Controles de Cabina", new Rectangle(0, 165, vw, 50), Color.White, 1.4f);
         DrawCenteredText(sb, "Seleccione una accion y pulse la nueva tecla (ESC para cancelar)", new Rectangle(0, 222, vw, 40), Color.LightGray, 0.9f);
 
+        // [BLOQUE: Filas de asignación de teclas]
         int startY = 330;
         int rowWidth = 780;
         int rowX = (vw - rowWidth) / 2;
@@ -397,6 +439,7 @@ public class MenuUI
             DrawCenteredText(sb, keyText, new Rectangle(pillX, row.Y + 10, pillW, 36), keyColor, 0.88f);
         }
 
+        // [BLOQUE: Botones del menú]
         int resetIdx = _configurableActions.Length;
         bool resetSel = (_optionIndex == resetIdx);
         Rectangle resetRect = new Rectangle(rowX, startY + resetIdx * 74, rowWidth, 56);
@@ -412,9 +455,11 @@ public class MenuUI
 
     public void DrawPause(SpriteBatch sb, float virtualWidth)
     {
+        // [BLOQUE: Fondo y franjas TMB]
         int vw = (int)Math.Ceiling(virtualWidth);
         DrawRect(sb, 0, 0, vw, 1080, Color.Black * 0.72f);
 
+        // [BLOQUE: Tarjeta de cabecera]
         int panelW = 640;
         int panelH = 440;
         int panelX = (vw - panelW) / 2;
@@ -426,6 +471,7 @@ public class MenuUI
         DrawCenteredText(sb, "Servicio en Pausa", new Rectangle(panelX, panelY + 35, panelW, 45), Color.White, 1.35f);
         DrawCenteredText(sb, "Pulse [ESC] para reanudar la marcha", new Rectangle(panelX, panelY + 85, panelW, 30), Color.LightGray, 0.88f);
 
+        // [BLOQUE: Botones del menú]
         int btnWidth = 520;
         int btnX = (vw - btnWidth) / 2;
         int startY = 470;
@@ -445,6 +491,7 @@ public class MenuUI
 
     private void DrawCenteredText(SpriteBatch sb, string text, Rectangle bounds, Color color, float scale)
     {
+        // [BLOQUE: Posicionamiento y renderizado de texto centrado]
         Vector2 size = _font.MeasureString(text) * scale;
         Vector2 pos = new Vector2(
             bounds.X + (bounds.Width - size.X) / 2f,
@@ -455,17 +502,20 @@ public class MenuUI
 
     private void DrawModernCard(SpriteBatch sb, int x, int y, int w, int h, Color fill, Color border)
     {
+        // [BLOQUE: Dibujo de tarjeta con borde]
         DrawRect(sb, x, y, w, h, border);
         DrawRect(sb, x + 1, y + 1, w - 2, h - 2, fill);
     }
 
     private bool IsKeyPressed(KeyboardState current, Keys key)
     {
+        // [BLOQUE: Verificación de pulsación por flanco ascendente]
         return current.IsKeyDown(key) && !_prevKb.IsKeyDown(key);
     }
 
     private void DrawRect(SpriteBatch sb, int x, int y, int width, int height, Color color)
     {
+        // [BLOQUE: Renderizado de rectángulo plano con textura de 1x1]
         sb.Draw(_pixel, new Rectangle(x, y, width, height), color);
     }
 }

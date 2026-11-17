@@ -9,6 +9,9 @@ using videojuego.World;
 
 namespace videojuego;
 
+/// <summary>
+/// Clase principal del simulador Metro L1. Orquesta el bucle de juego (Update/Draw a 60 FPS), gestiona los estados de pantalla (menú, opciones, juego, pausa) y coordina los subsistemas de audio, renderizado, señalización y servicio.
+/// </summary>
 public class Game1 : Game
 {
     private GraphicsDeviceManager _graphics;
@@ -32,6 +35,7 @@ public class Game1 : Game
 
     public Game1()
     {
+        // [BLOQUE: Configuración inicial de ventana y gráficos]
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -43,6 +47,7 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
+        // [BLOQUE: Inicialización de título, viewport y sesión]
         Window.Title = "Metro L1 by Revert_b0t";
         Window.AllowUserResizing = true;
 
@@ -54,6 +59,7 @@ public class Game1 : Game
 
     private void StartNewSession()
     {
+        // [BLOQUE: Reinicio de estado del simulador]
         _audio?.StopAnnouncement();
         _train = new MetroTrain();
         _signalingAI = new SignalingAI();
@@ -66,6 +72,7 @@ public class Game1 : Game
 
     protected override void LoadContent()
     {
+        // [BLOQUE: Carga de recursos gráficos y de audio]
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _font = Content.Load<SpriteFont>("MainFont");
 
@@ -76,12 +83,13 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
+        // [BLOQUE: Actualización de viewport e input]
         _viewport.Update(GraphicsDevice);
         var kb = Keyboard.GetState();
         var mouse = _viewport.GetVirtualMouseState(Mouse.GetState());
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        // Alternar Pantalla Completa con F11
+        // [BLOQUE: Gestión de pantalla completa con F11]
         if (IsKeyPressed(kb, Keys.F11))
         {
             _graphics.IsFullScreen = !_graphics.IsFullScreen;
@@ -100,6 +108,7 @@ public class Game1 : Game
 
         float vw = _viewport.VirtualWidth;
 
+        // [BLOQUE: Máquina de estados de pantalla]
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
@@ -150,11 +159,13 @@ public class Game1 : Game
 
     private void UpdateGameplay(float dt, KeyboardState kb)
     {
+        // [BLOQUE: Lectura de controles configurados]
         Keys accelKey = _inputConfig.Bindings[GameAction.Accelerate];
         Keys brakeKey = _inputConfig.Bindings[GameAction.Brake];
         Keys doorsKey = _inputConfig.Bindings[GameAction.Doors];
         Keys resetKey = _inputConfig.Bindings[GameAction.ResetATP];
 
+        // [BLOQUE: Gestión de entrada de usuario]
         if (IsKeyPressed(kb, accelKey))
         {
             int prevNotch = _train.Notch;
@@ -180,12 +191,13 @@ public class Game1 : Game
         if (IsKeyPressed(kb, resetKey))
             _train.ResetEmergencyBrake();
 
+        // [BLOQUE: Actualización de sistemas de simulación]
         _train.Update(dt);
         _signalingAI.Update(dt, _train, _signals, _stations);
         _serviceManager.Update(dt, _train, _stations, _signals);
         _renderer.Update(dt, _train);
 
-        // Disparar megafonía a mitad de trayecto entre estaciones
+        // [BLOQUE: Disparo de megafonía entre estaciones]
         for (int i = 1; i < _stations.Count; i++)
         {
             var prevSt = _stations[i - 1];
@@ -203,6 +215,7 @@ public class Game1 : Game
             }
         }
 
+        // [BLOQUE: Actualización del audio según velocidad]
         bool isOverspeed = _train.VelocityKmh > _serviceManager.CurrentSpeedLimitKmh;
         _audio.Update(dt, _train.VelocityKmh, _train.Notch, isOverspeed, _train.EmergencyBrakeTriggered);
     }
@@ -219,6 +232,7 @@ public class Game1 : Game
 
         float vw = _viewport.VirtualWidth;
 
+        // [BLOQUE: Renderizado según estado de pantalla]
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
@@ -245,6 +259,7 @@ public class Game1 : Game
 
     protected override void UnloadContent()
     {
+        // [BLOQUE: Liberación de recursos de audio]
         _audio?.Dispose();
         base.UnloadContent();
     }

@@ -1,5 +1,8 @@
 namespace videojuego.World;
 
+/// <summary>
+/// Representa una estación de la Línea 1 del Metro de Barcelona. Contiene nombre oficial, posición kilométrica, longitud de andén, correspondencias con otras líneas, archivo de megafonía asociado y estado de visita durante la partida.
+/// </summary>
 public class Station
 {
     public string Name { get; }

@@ -1,5 +1,8 @@
 namespace videojuego.World;
 
+/// <summary>
+/// Define los tres aspectos posibles de una señal ferroviaria según el sistema de señalización del Metro de Barcelona.
+/// </summary>
 public enum SignalAspect
 {
     Green,  // Vía libre
@@ -7,6 +10,9 @@ public enum SignalAspect
     Red     // Parada absoluta
 }
 
+/// <summary>
+/// Representa una señal luminosa del sistema de enclavamiento CCM. Contiene su posición kilométrica, aspecto actual, texto del cartel luminoso y límite de velocidad asociado.
+/// </summary>
 public class Signal
 {
     public float PositionMeters { get; }
