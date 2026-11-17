@@ -41,12 +41,14 @@ public class MetroRenderer
 
     public void DrawWorld(
         SpriteBatch sb,
+        float virtualWidth,
         MetroTrain train,
         ServiceManager service,
         List<Station> stations,
         List<Signal> signals,
         InputConfig config)
     {
+        int vw = (int)Math.Ceiling(virtualWidth);
         int groundY = 740;
 
         float shakeY = 0f;
@@ -56,32 +58,32 @@ public class MetroRenderer
             shakeY = (float)(Math.Sin(_wheelRotation * 3.0) * intensity);
         }
 
-        // Posición de cabina centrada en el tercio izquierdo-central de 1920px
-        float cameraOffsetX = 680f - (train.PositionMeters * PixelsPerMeter);
+        // En pantallas anchas (21:9), la cabina mantiene margen izquierdo amplio y muestra mucho más túnel por delante
+        float cameraAnchorX = Math.Min(760f, virtualWidth * 0.35f);
+        float cameraOffsetX = cameraAnchorX - (train.PositionMeters * PixelsPerMeter);
         int baseGroundY = groundY + (int)shakeY;
 
-        // 1. Fondo del túnel y bóveda superior (desplazada bajo el termómetro TMB)
-        DrawRect(sb, 0, 185, 1920, baseGroundY - 185, _tunnelBg);
-        DrawRect(sb, 0, 185, 1920, 18, new Color(24, 28, 36));
+        // 1. Fondo del túnel y bóveda superior a todo el ancho real (vw)
+        DrawRect(sb, 0, 185, vw, baseGroundY - 185, _tunnelBg);
+        DrawRect(sb, 0, 185, vw, 18, new Color(24, 28, 36));
 
-        // Pilares, cableado de túnel y luminarias con degradado suave
-        for (int m = 0; m < 3500; m += 26)
+        int minVisibleMeter = Math.Max(0, (int)(train.PositionMeters - (cameraAnchorX / PixelsPerMeter) - 30));
+        int maxVisibleMeter = (int)(train.PositionMeters + ((vw - cameraAnchorX) / PixelsPerMeter) + 40);
+
+        int firstPillar = (minVisibleMeter / 26) * 26;
+        for (int m = firstPillar; m <= maxVisibleMeter; m += 26)
         {
             float colX = cameraOffsetX + m * PixelsPerMeter;
-            if (colX < -120 || colX > 2040) continue;
+            DrawRect(sb, (int)colX, 203, 22, baseGroundY - 203, new Color(21, 25, 33));
+            DrawRect(sb, (int)colX + 17, 203, 5, baseGroundY - 203, new Color(15, 17, 23));
 
-            DrawRect(sb, (int)colX, 114, 22, baseGroundY - 114, new Color(21, 25, 33));
-            DrawRect(sb, (int)colX + 17, 114, 5, baseGroundY - 114, new Color(15, 17, 23));
+            DrawRect(sb, (int)colX - 160, 245, 320, 4, new Color(36, 42, 52));
+            DrawRect(sb, (int)colX - 160, 257, 320, 3, new Color(62, 44, 34));
 
-            // Bandejas de cables
-            DrawRect(sb, (int)colX - 160, 210, 320, 4, new Color(36, 42, 52));
-            DrawRect(sb, (int)colX - 160, 222, 320, 3, new Color(62, 44, 34));
-
-            // Luminaria fluorescente con halo translúcido real (Alpha premultiplicado)
             int lampX = (int)colX + 120;
-            DrawRect(sb, lampX - 45, 142, 90, 460, new Color(170, 200, 240) * 0.035f);
-            DrawRect(sb, lampX - 24, 142, 48, 340, new Color(190, 215, 250) * 0.05f);
-            DrawRect(sb, lampX - 18, 136, 36, 6, new Color(220, 235, 255));
+            DrawRect(sb, lampX - 45, 209, 90, 460, new Color(170, 200, 240) * 0.035f);
+            DrawRect(sb, lampX - 24, 209, 48, 340, new Color(190, 215, 250) * 0.05f);
+            DrawRect(sb, lampX - 18, 203, 36, 6, new Color(220, 235, 255));
         }
 
         // 2. Estaciones de la L1
@@ -90,26 +92,25 @@ public class MetroRenderer
             DrawStation(sb, st, cameraOffsetX, baseGroundY);
         }
 
-        // 3. Catenaria rígida superior
+        // 3. Catenaria rígida superior a todo el ancho (vw)
         int catenaryY = baseGroundY - 102;
-        DrawRect(sb, 0, catenaryY, 1920, 4, new Color(155, 118, 86));
-        for (int m = 0; m < 3500; m += 14)
+        DrawRect(sb, 0, catenaryY, vw, 4, new Color(155, 118, 86));
+        int firstHanger = (minVisibleMeter / 14) * 14;
+        for (int m = firstHanger; m <= maxVisibleMeter; m += 14)
         {
             float hangerX = cameraOffsetX + m * PixelsPerMeter;
-            if (hangerX > -20 && hangerX < 1940)
-                DrawRect(sb, (int)hangerX, 114, 3, catenaryY - 114, new Color(48, 54, 65));
+            DrawRect(sb, (int)hangerX, 203, 3, catenaryY - 203, new Color(48, 54, 65));
         }
 
-        // 4. Vías (balasto, traviesas y carril)
-        DrawRect(sb, 0, baseGroundY + 10, 1920, 62, new Color(32, 28, 26));
-        for (float m = 0; m < 3500; m += 0.8f)
+        // 4. Vías (balasto, traviesas y carril) a todo el ancho (vw)
+        DrawRect(sb, 0, baseGroundY + 10, vw, 62, new Color(32, 28, 26));
+        for (float m = minVisibleMeter; m <= maxVisibleMeter; m += 0.8f)
         {
             float tieX = cameraOffsetX + m * PixelsPerMeter;
-            if (tieX > -10 && tieX < 1930)
-                DrawRect(sb, (int)tieX, baseGroundY + 6, 5, 10, new Color(88, 92, 100));
+            DrawRect(sb, (int)tieX, baseGroundY + 6, 5, 10, new Color(88, 92, 100));
         }
-        DrawRect(sb, 0, baseGroundY, 1920, 6, new Color(168, 175, 186));
-        DrawRect(sb, 0, baseGroundY + 6, 1920, 4, new Color(78, 84, 92));
+        DrawRect(sb, 0, baseGroundY, vw, 6, new Color(168, 175, 186));
+        DrawRect(sb, 0, baseGroundY + 6, vw, 4, new Color(78, 84, 92));
 
         // 5. Señalización y balizas ATP
         foreach (var sig in signals)
@@ -120,11 +121,11 @@ public class MetroRenderer
         // 6. Tren Serie 6000 de 5 coches
         DrawTrainSeries6000(sb, train, cameraOffsetX, baseGroundY, catenaryY);
 
-        // 7. Consola de cabina inferior (1920x1080)
-        DrawCabinHUD(sb, train, service, config);
+        // 7. Consola de cabina inferior centrada/adaptada
+        DrawCabinHUD(sb, vw, train, service, config);
 
-        // 8. Termómetro superior oficial de la L1 (TMB) con progreso en tiempo real
-        DrawRouteThermometer(sb, train, stations);
+        // 8. Termómetro superior oficial de la L1 (TMB)
+        DrawRouteThermometer(sb, vw, train, stations);
     }
 
     private void DrawStation(SpriteBatch sb, Station st, float cameraOffsetX, int groundY)
@@ -359,77 +360,6 @@ public class MetroRenderer
         DrawRect(sb, dotX, dotY, 2, 2, Color.White);
     }
 
-    private void DrawCabinHUD(SpriteBatch sb, MetroTrain train, ServiceManager service, InputConfig config)
-    {
-        int hudTop = 812;
-        int hudHeight = 1080 - hudTop;
-
-        // Fondo de consola y línea roja superior
-        DrawRect(sb, 0, hudTop, 1920, hudHeight, new Color(16, 18, 24));
-        DrawRect(sb, 0, hudTop, 1920, 6, _tmbRed);
-
-        // 1. Barra de mensajes del Centro de Control (CCM)
-        DrawPanel(sb, 40, hudTop + 20, 1840, 42);
-        Color msgColor = train.EmergencyBrakeTriggered ? Color.Red : Color.White;
-        sb.DrawString(_font, $"CCM L1 > {service.StatusMessage}", new Vector2(58, hudTop + 31), msgColor);
-
-        // 2. Cuatro tarjetas instrumentales separadas con amplio margen (cero solapamiento)
-        int cardsY = hudTop + 78;
-        int cardH = 122;
-
-        // TARJETA 1: VELOCÍMETRO Y ATP (X: 40, Ancho: 540)
-        DrawPanel(sb, 40, cardsY, 540, cardH);
-        sb.DrawString(_font, $"VELOCIDAD: {train.VelocityKmh:00.0} km/h", new Vector2(60, cardsY + 16), Color.Cyan);
-        string limitStr = $"MAX ATP: {service.CurrentSpeedLimitKmh} km/h";
-        Vector2 limitSize = _font.MeasureString(limitStr);
-        sb.DrawString(_font, limitStr, new Vector2(40 + 540 - limitSize.X - 20, cardsY + 16), Color.OrangeRed);
-
-        DrawRect(sb, 60, cardsY + 56, 500, 32, new Color(32, 36, 44));
-        int speedBarWidth = (int)(Math.Min(1f, train.VelocityKmh / 80f) * 500f);
-        Color speedColor = train.VelocityKmh > service.CurrentSpeedLimitKmh ? Color.OrangeRed : Color.Cyan;
-        DrawRect(sb, 60, cardsY + 56, speedBarWidth, 32, speedColor);
-
-        int limitMarkerX = 60 + (int)((service.CurrentSpeedLimitKmh / 80f) * 500f);
-        DrawRect(sb, limitMarkerX - 2, cardsY + 50, 4, 44, Color.Red);
-
-        // TARJETA 2: REGULADOR DE TRACCIÓN/FRENO (X: 605, Ancho: 490)
-        Keys accelKey = config.Bindings[GameAction.Accelerate];
-        Keys brakeKey = config.Bindings[GameAction.Brake];
-        DrawPanel(sb, 605, cardsY, 490, cardH);
-
-        string notchLabel = train.Notch switch
-        {
-            -4 => "EMERGENCIA (-4)",
-            < 0 => $"FRENO ({train.Notch})",
-            0 => "DERIVA (0)",
-            > 0 => $"TRACCION (+{train.Notch})"
-        };
-        sb.DrawString(_font, $"REGULADOR [{accelKey}/{brakeKey}]: {notchLabel}", new Vector2(625, cardsY + 16), Color.LightGray);
-
-        DrawRect(sb, 625, cardsY + 56, 450, 32, new Color(32, 36, 44));
-        int notchX = 625 + (train.Notch + 4) * 50;
-        Color notchColor = train.Notch > 0 ? Color.LimeGreen : (train.Notch < 0 ? Color.OrangeRed : Color.White);
-        DrawRect(sb, notchX, cardsY + 52, 50, 40, notchColor);
-
-        // TARJETA 3: PUERTAS Y EMBARQUE (X: 1120, Ancho: 420)
-        Keys doorsKey = config.Bindings[GameAction.Doors];
-        DrawPanel(sb, 1120, cardsY, 420, cardH);
-        sb.DrawString(_font, $"PUERTAS [{doorsKey}]: {(train.DoorsOpen ? "ABIERTAS" : "CERRADAS")}", new Vector2(1140, cardsY + 16), Color.Gold);
-
-        DrawRect(sb, 1140, cardsY + 56, 380, 32, new Color(32, 36, 44));
-        DrawRect(sb, 1140, cardsY + 56, (int)(service.BoardingProgress * 380f), 32, train.DoorsOpen ? Color.Gold : Color.DarkSlateGray);
-
-        // TARJETA 4: TELEMETRÍA DE SERVICIO (X: 1565, Ancho: 315)
-        DrawPanel(sb, 1565, cardsY, 315, cardH);
-        sb.DrawString(_font, $"VIAJEROS: {service.PassengersOnBoard}", new Vector2(1585, cardsY + 22), Color.White);
-        sb.DrawString(_font, $"PUNTUACION: {service.Score}", new Vector2(1585, cardsY + 62), Color.LimeGreen);
-
-        // 3. Barra inferior de ayuda de controles
-        Keys resetKey = config.Bindings[GameAction.ResetATP];
-        string helpText = $"[{accelKey}] Subir Muesca   |   [{brakeKey}] Bajar Muesca   |   [{doorsKey}] Puertas   |   [{resetKey}] Rearmar ATP   |   [ESC] Menu Principal";
-        sb.DrawString(_font, helpText, new Vector2(42, hudTop + 218), Color.Gray);
-    }
-
     private void DrawPanel(SpriteBatch sb, int x, int y, int w, int h)
     {
         DrawRect(sb, x, y, w, h, new Color(44, 50, 62));
@@ -441,38 +371,33 @@ public class MetroRenderer
         sb.Draw(_pixel, new Rectangle(x, y, width, height), color);
     }
 
-    private void DrawRouteThermometer(SpriteBatch sb, MetroTrain train, List<Station> stations)
+    private void DrawRouteThermometer(SpriteBatch sb, int vw, MetroTrain train, List<Station> stations)
     {
         if (stations == null || stations.Count < 2) return;
 
-        // Fondo blanco limpio estilo cartel interior de tren Serie 6000 de TMB
-        DrawRect(sb, 0, 0, 1920, 185, new Color(244, 245, 247));
-        DrawRect(sb, 0, 181, 1920, 4, _tmbRed);
+        DrawRect(sb, 0, 0, vw, 185, new Color(246, 247, 249));
+        DrawRect(sb, 0, 181, vw, 4, _tmbRed);
 
         int lineY = 122;
         int startX = 115;
-        int endX = 1805;
+        int endX = vw - 115;
         int totalLineW = endX - startX;
 
-        // Badges rojos "L1" en ambos extremos (como en el plano oficial de TMB)
         DrawRect(sb, 42, lineY - 22, 44, 44, _tmbRed);
-        Vector2 l1Size = _font.MeasureString("L1");
-        sb.DrawString(_font, "L1", new Vector2(42 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White);
+        Vector2 l1Size = _font.MeasureString("L1") * 0.85f;
+        sb.DrawString(_font, "L1", new Vector2(42 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
 
-        DrawRect(sb, 1834, lineY - 22, 44, 44, _tmbRed);
-        sb.DrawString(_font, "L1", new Vector2(1834 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White);
+        DrawRect(sb, vw - 86, lineY - 22, 44, 44, _tmbRed);
+        sb.DrawString(_font, "L1", new Vector2(vw - 86 + (44 - l1Size.X) / 2f, lineY - l1Size.Y / 2f), Color.White, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
 
-        // Barra base roja de la línea (tramo pendiente) y barra iluminada de progreso recorrido
         float firstPos = stations[0].PositionMeters;
         float lastPos = stations[^1].PositionMeters;
         float progressRatio = Math.Clamp((train.PositionMeters - firstPos) / (lastPos - firstPos), 0f, 1f);
         int trainMarkerX = startX + (int)(progressRatio * totalLineW);
 
-        // Tramo ya recorrido en rojo intenso y tramo pendiente en rojo suave/apagado
         DrawRect(sb, startX, lineY - 4, totalLineW, 8, new Color(235, 175, 170));
         DrawRect(sb, startX, lineY - 4, trainMarkerX - startX, 8, _tmbRed);
 
-        // Dibujar cada una de las 30 estaciones distribuidas equitativamente
         float stepX = (float)totalLineW / (stations.Count - 1);
 
         for (int i = 0; i < stations.Count; i++)
@@ -480,30 +405,16 @@ public class MetroRenderer
             var st = stations[i];
             int sx = startX + (int)Math.Round(i * stepX);
             bool passed = train.PositionMeters >= st.PositionMeters - 5f;
-            bool hasConnections = !string.IsNullOrEmpty(st.Connections) &&
-                                  st.Connections != "TERMINAL L1";
+            bool hasConnections = !string.IsNullOrEmpty(st.Connections) && st.Connections != "TERMINAL L1";
 
-            // 1. Nombre de estación inclinado a -45 grados por encima de la línea (fiel al plano TMB)
-            float textScale = 0.62f;
+            float textScale = 0.56f;
             Color nameColor = passed ? Color.Black : new Color(75, 80, 90);
-            // Abreviar ligeramente nombres muy largos para que no toquen el borde superior
             string displayName = st.Name
                 .Replace("HOSPITAL DE BELLVITGE", "Hospital de Bellvitge")
                 .Replace("RAMBLA JUST OLIVERAS", "Rbla. Just Oliveras");
 
-            sb.DrawString(
-                _font,
-                displayName,
-                new Vector2(sx - 4, lineY - 14),
-                nameColor,
-                -MathHelper.PiOver4, // Rotación -45°
-                Vector2.Zero,
-                textScale,
-                SpriteEffects.None,
-                0f
-            );
+            sb.DrawString(_font, displayName, new Vector2(sx - 4, lineY - 14), nameColor, -MathHelper.PiOver4, Vector2.Zero, textScale, SpriteEffects.None, 0f);
 
-            // 2. Nodo de estación: círculo blanco con borde negro si tiene enlace, o muesca roja si no tiene
             if (hasConnections)
             {
                 DrawRect(sb, sx - 8, lineY - 8, 16, 16, Color.Black);
@@ -514,14 +425,87 @@ public class MetroRenderer
                 DrawRect(sb, sx - 2, lineY - 9, 4, 14, passed ? _tmbRed : new Color(210, 120, 115));
             }
 
-            // 3. Cuadraditos de correspondencia de colores oficiales debajo de la línea
             DrawConnectionBadges(sb, st.Name, sx, lineY + 13);
         }
 
-        // 4. Indicador en tiempo real de la posición actual del tren sobre el termómetro
         DrawRect(sb, trainMarkerX - 9, lineY - 11, 18, 22, Color.Black);
         DrawRect(sb, trainMarkerX - 7, lineY - 9, 14, 18, Color.Cyan);
         DrawRect(sb, trainMarkerX - 3, lineY - 5, 6, 10, Color.White);
+    }
+
+    private void DrawCabinHUD(SpriteBatch sb, int vw, MetroTrain train, ServiceManager service, InputConfig config)
+    {
+        int hudTop = 812;
+        int hudHeight = 1080 - hudTop;
+
+        DrawRect(sb, 0, hudTop, vw, hudHeight, new Color(15, 17, 22));
+        DrawRect(sb, 0, hudTop, vw, 5, _tmbRed);
+
+        // Centramos el bloque instrumental de 1840px (o lo adaptamos si la pantalla es más ancha)
+        int hudContentW = Math.Min(vw - 80, 1840);
+        int offsetX = (vw - hudContentW) / 2;
+
+        // 1. Barra de mensajes del Centro de Control (CCM)
+        DrawPanel(sb, offsetX, hudTop + 20, hudContentW, 42);
+        Color msgColor = train.EmergencyBrakeTriggered ? Color.Red : Color.White;
+        sb.DrawString(_font, $"CCM L1  >  {service.StatusMessage}", new Vector2(offsetX + 18, hudTop + 28), msgColor, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
+
+        int cardsY = hudTop + 76;
+        int cardH = 124;
+
+        // TARJETA 1: VELOCÍMETRO Y ATP
+        DrawPanel(sb, offsetX, cardsY, 540, cardH);
+        sb.DrawString(_font, $"VELOCIDAD: {train.VelocityKmh:00.0} km/h", new Vector2(offsetX + 20, cardsY + 14), Color.Cyan, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
+        string limitStr = $"MAX ATP: {service.CurrentSpeedLimitKmh} km/h";
+        Vector2 limitSize = _font.MeasureString(limitStr) * 0.85f;
+        sb.DrawString(_font, limitStr, new Vector2(offsetX + 540 - limitSize.X - 20, cardsY + 14), Color.OrangeRed, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
+
+        DrawRect(sb, offsetX + 20, cardsY + 56, 500, 32, new Color(32, 36, 44));
+        int speedBarWidth = (int)(Math.Min(1f, train.VelocityKmh / 80f) * 500f);
+        Color speedColor = train.VelocityKmh > service.CurrentSpeedLimitKmh ? Color.OrangeRed : Color.Cyan;
+        DrawRect(sb, offsetX + 20, cardsY + 56, speedBarWidth, 32, speedColor);
+
+        int limitMarkerX = offsetX + 20 + (int)((service.CurrentSpeedLimitKmh / 80f) * 500f);
+        DrawRect(sb, limitMarkerX - 2, cardsY + 50, 4, 44, Color.Red);
+
+        // TARJETA 2: REGULADOR DE TRACCIÓN/FRENO
+        Keys accelKey = config.Bindings[GameAction.Accelerate];
+        Keys brakeKey = config.Bindings[GameAction.Brake];
+        int card2X = offsetX + 565;
+        DrawPanel(sb, card2X, cardsY, 490, cardH);
+
+        string notchLabel = train.Notch switch
+        {
+            -4 => "EMERGENCIA (-4)",
+            < 0 => $"FRENO ({train.Notch})",
+            0 => "DERIVA (0)",
+            > 0 => $"TRACCION (+{train.Notch})"
+        };
+        sb.DrawString(_font, $"REGULADOR [{accelKey}/{brakeKey}]: {notchLabel}", new Vector2(card2X + 20, cardsY + 14), Color.LightGray, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
+
+        DrawRect(sb, card2X + 20, cardsY + 56, 450, 32, new Color(32, 36, 44));
+        int notchX = card2X + 20 + (train.Notch + 4) * 50;
+        Color notchColor = train.Notch > 0 ? Color.LimeGreen : (train.Notch < 0 ? Color.OrangeRed : Color.White);
+        DrawRect(sb, notchX, cardsY + 52, 50, 40, notchColor);
+
+        // TARJETA 3: PUERTAS Y EMBARQUE
+        Keys doorsKey = config.Bindings[GameAction.Doors];
+        int card3X = offsetX + 1080;
+        DrawPanel(sb, card3X, cardsY, 420, cardH);
+        sb.DrawString(_font, $"PUERTAS [{doorsKey}]: {(train.DoorsOpen ? "ABIERTAS" : "CERRADAS")}", new Vector2(card3X + 20, cardsY + 14), Color.Gold, 0f, Vector2.Zero, 0.85f, SpriteEffects.None, 0f);
+
+        DrawRect(sb, card3X + 20, cardsY + 56, 380, 32, new Color(32, 36, 44));
+        DrawRect(sb, card3X + 20, cardsY + 56, (int)(service.BoardingProgress * 380f), 32, train.DoorsOpen ? Color.Gold : Color.DarkSlateGray);
+
+        // TARJETA 4: TELEMETRÍA DE SERVICIO
+        int card4X = offsetX + 1525;
+        DrawPanel(sb, card4X, cardsY, 315, cardH);
+        sb.DrawString(_font, $"VIAJEROS: {service.PassengersOnBoard}", new Vector2(card4X + 20, cardsY + 20), Color.White, 0f, Vector2.Zero, 0.88f, SpriteEffects.None, 0f);
+        sb.DrawString(_font, $"PUNTUACION: {service.Score}", new Vector2(card4X + 20, cardsY + 62), Color.LimeGreen, 0f, Vector2.Zero, 0.88f, SpriteEffects.None, 0f);
+
+        Keys resetKey = config.Bindings[GameAction.ResetATP];
+        string helpText = $"[{accelKey}] Subir Muesca   ·   [{brakeKey}] Bajar Muesca   ·   [{doorsKey}] Puertas   ·   [{resetKey}] Rearmar ATP   ·   [ESC] Pausa   ·   [F11] Pantalla Completa";
+        sb.DrawString(_font, helpText, new Vector2(offsetX + 4, hudTop + 218), Color.Gray, 0f, Vector2.Zero, 0.80f, SpriteEffects.None, 0f);
     }
 
     private void DrawConnectionBadges(SpriteBatch sb, string stationName, int centerX, int startY)

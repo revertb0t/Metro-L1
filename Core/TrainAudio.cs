@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using Microsoft.Xna.Framework.Audio;
+using NAudio.Wave;
 
 namespace videojuego.Core;
 
@@ -14,7 +16,12 @@ public class TrainAudio : IDisposable
     private SoundEffect _notchClickEffect;
     private SoundEffect _atpAlarmEffect;
 
+    private WaveOutEvent _announcementOut;
+    private AudioFileReader _announcementReader;
     private float _alarmCooldown = 0f;
+
+    public bool IsAnnouncementPlaying =>
+        _announcementOut != null && _announcementOut.PlaybackState == PlaybackState.Playing;
 
     public TrainAudio()
     {
@@ -25,7 +32,7 @@ public class TrainAudio : IDisposable
         _motorInstance.Volume = 0f;
         _motorInstance.Play();
 
-        // 2. Generar aviso bitonal de cierre de puertas de metro (dos notas descendentes)
+        // 2. Generar aviso bitonal de cierre de puertas de metro
         _doorChimeEffect = CreateTwoToneChime(880f, 659.25f, 0.22f);
 
         // 3. Generar clic mecánico de palanca de muescas
@@ -42,9 +49,9 @@ public class TrainAudio : IDisposable
         {
             float speedRatio = Math.Clamp(velocityKmh / 80f, 0f, 1f);
             float loadBoost = notch > 0 ? 0.12f : (notch < 0 ? 0.08f : 0.02f);
+            float ducking = IsAnnouncementPlaying ? 0.45f : 1.0f;
 
-            _motorInstance.Volume = Math.Clamp((speedRatio * 0.25f) + loadBoost, 0f, 0.45f);
-            // El tono sube desde grave (-0.6) hasta agudo (+0.85) como un variador VVVF
+            _motorInstance.Volume = Math.Clamp(((speedRatio * 0.25f) + loadBoost) * ducking, 0f, 0.45f);
             _motorInstance.Pitch = Math.Clamp(-0.6f + (speedRatio * 1.45f), -1.0f, 1.0f);
         }
         else
@@ -61,6 +68,49 @@ public class TrainAudio : IDisposable
             _atpAlarmEffect.Play(0.35f, 0f, 0f);
             _alarmCooldown = emergency ? 0.35f : 0.65f;
         }
+    }
+
+    public void PlayStationAnnouncement(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName)) return;
+
+        // Buscar primero junto al ejecutable y, como respaldo, en la carpeta raíz del proyecto
+        string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Audio", fileName);
+        if (!File.Exists(fullPath))
+        {
+            fullPath = Path.Combine(@"C:\videojuego\Audio", fileName);
+            if (!File.Exists(fullPath)) return;
+        }
+
+        try
+        {
+            StopAnnouncement();
+
+            _announcementReader = new AudioFileReader(fullPath);
+            _announcementReader.Volume = 0.90f;
+
+            _announcementOut = new WaveOutEvent();
+            _announcementOut.Init(_announcementReader);
+            _announcementOut.Play();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error reproduciendo {fileName}: {ex.Message}");
+        }
+    }
+
+    public void StopAnnouncement()
+    {
+        try
+        {
+            _announcementOut?.Stop();
+            _announcementOut?.Dispose();
+            _announcementOut = null;
+
+            _announcementReader?.Dispose();
+            _announcementReader = null;
+        }
+        catch { }
     }
 
     public void PlayDoorChime()
@@ -83,7 +133,6 @@ public class TrainAudio : IDisposable
         for (int i = 0; i < sampleCount; i++)
         {
             double t = (double)i / SampleRate;
-            // Combinamos fundamental + armónico suave para darle cuerpo de motor eléctrico
             double wave = Math.Sin(2.0 * Math.PI * frequency * t) * 0.7
                         + Math.Sin(2.0 * Math.PI * (frequency * 2.0) * t) * 0.3;
 
@@ -107,7 +156,6 @@ public class TrainAudio : IDisposable
             float freq = isSecondTone ? freq2 : freq1;
 
             double t = (double)localIndex / SampleRate;
-            // Envolvente de decaimiento suave tipo timbre electrónico
             double envelope = Math.Exp(-6.0 * ((double)localIndex / singleSamples));
             double wave = Math.Sin(2.0 * Math.PI * freq * t) * envelope;
 
@@ -159,11 +207,30 @@ public class TrainAudio : IDisposable
 
     public void Dispose()
     {
+        StopAnnouncement();
         _motorInstance?.Stop();
         _motorInstance?.Dispose();
         _motorBaseEffect?.Dispose();
         _doorChimeEffect?.Dispose();
         _notchClickEffect?.Dispose();
         _atpAlarmEffect?.Dispose();
+    }
+
+    public void PauseAll()
+    {
+        if (_motorInstance != null && _motorInstance.State == SoundState.Playing)
+            _motorInstance.Pause();
+
+        if (_announcementOut != null && _announcementOut.PlaybackState == PlaybackState.Playing)
+            _announcementOut.Pause();
+    }
+
+    public void ResumeAll()
+    {
+        if (_motorInstance != null && _motorInstance.State == SoundState.Paused)
+            _motorInstance.Play();
+
+        if (_announcementOut != null && _announcementOut.PlaybackState == PlaybackState.Paused)
+            _announcementOut.Play();
     }
 }

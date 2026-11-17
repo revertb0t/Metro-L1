@@ -1,0 +1,49 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+
+namespace videojuego.Core;
+
+public class ViewportManager
+{
+    public const float VirtualHeight = 1080f;
+    public float VirtualWidth { get; private set; } = 1920f;
+    public float Scale { get; private set; } = 1f;
+    public Matrix TransformMatrix { get; private set; } = Matrix.Identity;
+
+    public void Update(GraphicsDevice gd)
+{
+    if (gd == null) return;
+
+    int screenW = gd.PresentationParameters.BackBufferWidth;
+    int screenH = gd.PresentationParameters.BackBufferHeight;
+
+    if (screenW <= 0 || screenH <= 0) return;
+
+    Scale = screenH / VirtualHeight;
+    if (Scale <= 0.01f) Scale = 1f;
+
+    VirtualWidth = screenW / Scale;
+    TransformMatrix = Matrix.CreateScale(Scale, Scale, 1f);
+}
+
+    public Point ScreenToVirtual(Point screenPos)
+    {
+        return new Point((int)(screenPos.X / Scale), (int)(screenPos.Y / Scale));
+    }
+
+    public MouseState GetVirtualMouseState(MouseState rawMouse)
+    {
+        Point vPos = ScreenToVirtual(rawMouse.Position);
+        return new MouseState(
+            vPos.X,
+            vPos.Y,
+            rawMouse.ScrollWheelValue,
+            rawMouse.LeftButton,
+            rawMouse.MiddleButton,
+            rawMouse.RightButton,
+            rawMouse.XButton1,
+            rawMouse.XButton2
+        );
+    }
+}

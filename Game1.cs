@@ -16,6 +16,7 @@ public class Game1 : Game
     private SpriteFont _font;
 
     private ScreenState _currentScreen = ScreenState.MainMenu;
+    private ViewportManager _viewport;
     private InputConfig _inputConfig;
     private MenuUI _menuUI;
 
@@ -31,18 +32,21 @@ public class Game1 : Game
 
     public Game1()
     {
-        Window.Title = "Metro L1 by Revert_b0t";
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
 
-        _graphics.PreferredBackBufferWidth = 1920;
-        _graphics.PreferredBackBufferHeight = 1080;
+        _graphics.PreferredBackBufferWidth = 1280;
+        _graphics.PreferredBackBufferHeight = 720;
         _graphics.SynchronizeWithVerticalRetrace = true;
     }
 
     protected override void Initialize()
     {
+        Window.Title = "Metro L1 by Revert_b0t";
+        Window.AllowUserResizing = true;
+
+        _viewport = new ViewportManager();
         _inputConfig = new InputConfig();
         StartNewSession();
         base.Initialize();
@@ -50,13 +54,14 @@ public class Game1 : Game
 
     private void StartNewSession()
     {
+        _audio?.StopAnnouncement();
         _train = new MetroTrain();
         _signalingAI = new SignalingAI();
         _serviceManager = new ServiceManager();
 
         var routeData = Line1Builder.BuildFullLine1();
         _stations = routeData.Stations;
-    _signals = routeData.Signals;
+        _signals = routeData.Signals;
     }
 
     protected override void LoadContent()
@@ -71,15 +76,35 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
+        _viewport.Update(GraphicsDevice);
         var kb = Keyboard.GetState();
-        var mouse = Mouse.GetState();
+        var mouse = _viewport.GetVirtualMouseState(Mouse.GetState());
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+        // Alternar Pantalla Completa con F11
+        if (IsKeyPressed(kb, Keys.F11))
+        {
+            _graphics.IsFullScreen = !_graphics.IsFullScreen;
+            if (_graphics.IsFullScreen)
+            {
+                _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+                _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            }
+            else
+            {
+                _graphics.PreferredBackBufferWidth = 1280;
+                _graphics.PreferredBackBufferHeight = 720;
+            }
+            _graphics.ApplyChanges();
+        }
+
+        float vw = _viewport.VirtualWidth;
 
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
                 _audio.Update(dt, 0f, 0, false, false);
-                _currentScreen = _menuUI.UpdateMainMenu(dt, kb, mouse, out bool startNew, out bool exitGame);
+                _currentScreen = _menuUI.UpdateMainMenu(dt, vw, kb, mouse, out bool startNew, out bool exitGame);
                 if (startNew)
                     StartNewSession();
                 if (exitGame)
@@ -87,17 +112,35 @@ public class Game1 : Game
                 break;
 
             case ScreenState.Options:
-                _currentScreen = _menuUI.UpdateOptions(dt, kb, mouse);
+                _currentScreen = _menuUI.UpdateOptions(dt, vw, kb, mouse);
                 break;
 
             case ScreenState.Playing:
                 if (IsKeyPressed(kb, Keys.Escape))
                 {
-                    _currentScreen = ScreenState.MainMenu;
+                    _audio.PauseAll();
+                    _menuUI.ResetPauseSelection();
+                    _currentScreen = ScreenState.Paused;
                     break;
                 }
 
                 UpdateGameplay(dt, kb);
+                break;
+
+            case ScreenState.Paused:
+                _currentScreen = _menuUI.UpdatePause(dt, vw, kb, mouse, out bool restartRoute, out bool backToMenu);
+                if (_currentScreen == ScreenState.Playing)
+                {
+                    if (restartRoute)
+                        StartNewSession();
+                    else
+                        _audio.ResumeAll();
+                }
+                else if (backToMenu)
+                {
+                    _audio.StopAnnouncement();
+                    _audio.ResumeAll();
+                }
                 break;
         }
 
@@ -142,6 +185,24 @@ public class Game1 : Game
         _serviceManager.Update(dt, _train, _stations, _signals);
         _renderer.Update(dt, _train);
 
+        // Disparar megafonía a mitad de trayecto entre estaciones
+        for (int i = 1; i < _stations.Count; i++)
+        {
+            var prevSt = _stations[i - 1];
+            var nextSt = _stations[i];
+
+            if (!nextSt.AnnouncementPlayed)
+            {
+                float midPoint = (prevSt.PositionMeters + nextSt.PositionMeters) * 0.5f;
+                if (_train.PositionMeters >= midPoint && _train.PositionMeters < nextSt.PositionMeters)
+                {
+                    nextSt.AnnouncementPlayed = true;
+                    _audio.PlayStationAnnouncement(nextSt.AudioFile);
+                    break;
+                }
+            }
+        }
+
         bool isOverspeed = _train.VelocityKmh > _serviceManager.CurrentSpeedLimitKmh;
         _audio.Update(dt, _train.VelocityKmh, _train.Notch, isOverspeed, _train.EmergencyBrakeTriggered);
     }
@@ -153,21 +214,28 @@ public class Game1 : Game
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(new Color(14, 16, 21));
-        _spriteBatch.Begin(blendState: BlendState.AlphaBlend);
+        GraphicsDevice.Clear(new Color(15, 17, 22));
+        _spriteBatch.Begin(blendState: BlendState.AlphaBlend, transformMatrix: _viewport.TransformMatrix);
+
+        float vw = _viewport.VirtualWidth;
 
         switch (_currentScreen)
         {
             case ScreenState.MainMenu:
-                _menuUI.DrawMainMenu(_spriteBatch);
+                _menuUI.DrawMainMenu(_spriteBatch, vw);
                 break;
 
             case ScreenState.Options:
-                _menuUI.DrawOptions(_spriteBatch);
+                _menuUI.DrawOptions(_spriteBatch, vw);
                 break;
 
             case ScreenState.Playing:
-                _renderer.DrawWorld(_spriteBatch, _train, _serviceManager, _stations, _signals, _inputConfig);
+                _renderer.DrawWorld(_spriteBatch, vw, _train, _serviceManager, _stations, _signals, _inputConfig);
+                break;
+
+            case ScreenState.Paused:
+                _renderer.DrawWorld(_spriteBatch, vw, _train, _serviceManager, _stations, _signals, _inputConfig);
+                _menuUI.DrawPause(_spriteBatch, vw);
                 break;
         }
 
