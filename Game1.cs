@@ -29,6 +29,7 @@ public class Game1 : Game
     private ServiceManager _serviceManager;
     private TrainAudio _audio;
     private MetroRenderer _renderer;
+    private DiscordPresenceManager _discord;
 
     private List<Station> _stations;
     private List<Signal> _signals;
@@ -54,6 +55,7 @@ public class Game1 : Game
         _inputConfig = new InputConfig();
         StartNewSession();
         base.Initialize();
+        _discord = new DiscordPresenceManager();
     }
 
     private void StartNewSession()
@@ -109,6 +111,7 @@ public class Game1 : Game
                 break;
 
             case ScreenState.Playing:
+                _discord?.UpdateGameplay(dt, _currentScreen, _train, _stations);
                 if (IsKeyPressed(kb, Keys.Escape))
                 {
                     _audio.PauseAll();
@@ -120,6 +123,7 @@ public class Game1 : Game
                 break;
 
             case ScreenState.Paused:
+                _discord?.UpdateGameplay(dt, _currentScreen, _train, _stations);
                 _currentScreen = _menuUI.UpdatePause(dt, vw, kb, mouse, out bool restartRoute, out bool backToMenu);
                 if (_currentScreen == ScreenState.Playing)
                 {
@@ -226,7 +230,9 @@ public class Game1 : Game
 
     protected override void UnloadContent()
     {
+        _discord?.Dispose();
         _audio?.Dispose();
+        _renderer?.Dispose();
         base.UnloadContent();
     }
 }
